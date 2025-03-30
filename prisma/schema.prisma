@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model applications {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String?            @db.Uuid
+  position_id      String?            @db.Uuid
+  total_rounds     Int
+  current_round    Int?               @default(1)
+  status           String?            @default("In Progress") @db.VarChar(50)
+  rejected_round   Int?
+  note             String?
+  created_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  positions        positions?         @relation(fields: [position_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users            users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  interview_rounds interview_rounds[]
+}
+
+model companies {
+  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String      @db.VarChar(100)
+  industry   String?     @db.VarChar(50)
+  location   String?     @db.VarChar(100)
+  created_at DateTime?   @default(now()) @db.Timestamptz(6)
+  updated_at DateTime?   @default(now()) @db.Timestamptz(6)
+  positions  positions[]
+}
+
+model interview_rounds {
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  application_id String?       @db.Uuid
+  round_number   Int
+  feedback       String?
+  status         String        @db.VarChar(50)
+  note           String?
+  created_at     DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?     @default(now()) @db.Timestamptz(6)
+  applications   applications? @relation(fields: [application_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model positions {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id   String?        @db.Uuid
+  title        String         @db.VarChar(100)
+  description  String?
+  created_at   DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime?      @default(now()) @db.Timestamptz(6)
+  applications applications[]
+  companies    companies?     @relation(fields: [company_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model users {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  full_name    String         @db.VarChar(100)
+  email        String         @unique @db.VarChar(100)
+  password     String?        @db.VarChar(255)
+  google_id    String?        @db.VarChar(255)
+  created_at   DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime?      @default(now()) @db.Timestamptz(6)
+  applications applications[]
+}
