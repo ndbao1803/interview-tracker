@@ -7,6 +7,7 @@ import { UseFormReturn } from "react-hook-form"
 import { formSchema } from "../schema"
 import { z } from "zod"
 
+
 type FormValues = z.infer<typeof formSchema>
 
 interface Company {
@@ -14,12 +15,14 @@ interface Company {
   name: string
 }
 
-export function CompanyStep({ 
-  form, 
-  mockCompanies 
-}: { 
+
+export function CompanyStep({
+  form,
+  mockCompanies
+}: {
   form: UseFormReturn<FormValues>
   mockCompanies: Company[]
+
 }) {
   return (
     <div>

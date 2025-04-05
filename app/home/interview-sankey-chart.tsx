@@ -3,8 +3,10 @@
 import { ResponsiveSankey } from "@nivo/sankey"
 import { useEffect, useState } from "react"
 import { DotLottieReact } from '@lottiefiles/dotlottie-react'
+import { motion, AnimatePresence } from "framer-motion"
 
 export function InterviewSankeyDiagramDemo() {
+  
   const [links, setLinks] = useState([
     // Level 0 -> Level 1
     { source: "Total Applicants", target: "Pending", value: 30 },
@@ -22,6 +24,9 @@ export function InterviewSankeyDiagramDemo() {
  
     { source: "Final Round", target: "Rejected Final", value: 8 },
   ])
+
+  const [showOffer, setShowOffer] = useState(false)
+  const [showArrow, setShowArrow] = useState(false)
 
   // Define the nodes (interview stages) grouped by levels
   const nodes = [
@@ -65,6 +70,12 @@ export function InterviewSankeyDiagramDemo() {
         { source: "Final Round", target: "Offer", value: 2 },
         { source: "Final Round", target: "Rejected Final", value: 6 },
       ])
+
+      // Show arrow after links update
+      setTimeout(() => setShowArrow(true), 500)
+      
+      // Show offer text after arrow
+      setTimeout(() => setShowOffer(true), 1000)
      
     }, 1500)
 
@@ -76,29 +87,52 @@ export function InterviewSankeyDiagramDemo() {
 
   return (
     <div className="relative w-full h-full">
-      <div className="absolute top-[-40px] right-[20px]  w-36 h-36 ">
-        <DotLottieReact
-          src="/assets/swirling _arrow.lottie"
-          loop
-          autoplay
-          speed={0.5} // Slow down animation to 50% speed
-          onError={(error) => {
-            console.error('Lottie Error:', error);
-          }}
-          onLoad={() => {
-            console.log('Lottie loaded successfully');
-          }}
-          style={{ 
-            width: '100%', 
-            height: '100%',
-            transform: 'rotate(-180deg)' 
-          }}
-        />
-      </div>
+      <AnimatePresence>
+        {showArrow && (
+          <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1 }}
+            className="absolute top-[-20px] right-[20px] w-28 h-28"
+          >
+            <DotLottieReact
+              src="/assets/swirling_arrow_yellow.lottie"
+              autoplay
+              speed={1}
+              onError={(error) => {
+                console.error('Lottie Error:', error);
+              }}
+              onLoad={() => {
+                console.log('Lottie loaded successfully');
+              }}
+              style={{ 
+                width: '100%', 
+                height: '100%',
+                transform: 'rotate(-180deg)' 
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showOffer && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="absolute top-[-40px] right-[30px] text-2xl text-[#FECB4D] font-bold"
+            style={{ fontFamily: 'Caveat' }}
+          >
+            You have an offer!
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <ResponsiveSankey
         linkBlendMode="exclusion"
         data={data}
-        margin={{ top: 40, right: 160, bottom: 40, left: 50 }}
+        margin={{ top: 40, right: 100, bottom: 40, left: 100}}
         align="center"
         colors={{ scheme: "category10" }}
         nodeOpacity={1}

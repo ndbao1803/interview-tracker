@@ -18,11 +18,13 @@ interface MenuProps {
 }
 
 interface SideBarProps {
-  menu: MenuProps[]
+  menu: MenuProps[],
+  openSideBar:any,
+  setOpenSideBar:any
 }
 
-export function SideBar({ menu }: SideBarProps) {
-  const [open, setOpen] = useState(true)
+export function SideBar({ menu,openSideBar,setOpenSideBar }: SideBarProps) {
+
   const [activeTitle, setActiveTitle] = useState(menu[0]?.title || "")
   const pathname = usePathname()
   const iconSize = 20
@@ -35,9 +37,9 @@ export function SideBar({ menu }: SideBarProps) {
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < constraintWindowWidth) {
-        setOpen(false)
+        setOpenSideBar(false)
       } else {
-        setOpen(true)
+        setOpenSideBar(true)
       }
     }
 
@@ -71,13 +73,13 @@ export function SideBar({ menu }: SideBarProps) {
 
   return (
     <div
-      className={`${open ? "w-60" : "w-16"} bg-background min-h-screen p-3 pt-5 duration-300 border-r border-foreground/10 relative`}
+      className={`${openSideBar ? "w-60" : "w-16"} bg-background min-h-screen p-3 pt-5 duration-300 border-r border-foreground/10 relative`}
     >
       <div
         className="absolute cursor-pointer -right-3 top-12 w-6 h-6 flex items-center justify-center bg-background border border-foreground/10 rounded-full"
-        onClick={() => setOpen(!open)}
+        onClick={() => setOpenSideBar(!openSideBar)}
       >
-        {open ? (
+        {openSideBar ? (
           <ChevronLeft className="h-4 w-4 text-[#cccccc]" />
         ) : (
           <ChevronRight className="h-4 w-4 text-[#cccccc]" />
@@ -85,8 +87,8 @@ export function SideBar({ menu }: SideBarProps) {
       </div>
 
       <div className="flex gap-x-3 items-center mb-6">
-        <FileText className={`text-primary h-8 w-8 duration-300 ${open && "mr-2"}`} />
-        <h1 className={`text-[#cccccc] font-medium text-lg duration-200 ${!open && "scale-0 w-0"}`}>InterviewTrack</h1>
+        <FileText className={`text-primary h-8 w-8 duration-300 ${openSideBar && "mr-2"}`} />
+        <h1 className={`text-[#cccccc] font-medium text-lg duration-200 ${!openSideBar && "scale-0 w-0"}`}>InterviewTrack</h1>
       </div>
 
       <ScrollArea.Root className="overflow-hidden">
@@ -96,7 +98,7 @@ export function SideBar({ menu }: SideBarProps) {
               <SideBarMenuItem
                 key={index}
                 menu={menuItem}
-                open={open}
+                open={openSideBar}
                 activeTitle={activeTitle}
                 handleMenuClick={handleMenuClick}
               />
@@ -104,10 +106,10 @@ export function SideBar({ menu }: SideBarProps) {
           </ul>
           <div
             className={`flex rounded-md p-2 cursor-pointer hover:bg-[#37373d] text-[#cccccc] text-sm items-center gap-x-4 mt-6
-              ${!open && "justify-center"}`}
+              ${!openSideBar && "justify-center"}`}
           >
             <LogOut size={iconSize} />
-            <span className={`${!open && "hidden"} origin-left duration-200`}>Logout</span>
+            <span className={`${!openSideBar && "hidden"} origin-left duration-200`}>Logout</span>
           </div>
         </ScrollArea.Viewport>
         <ScrollArea.Scrollbar

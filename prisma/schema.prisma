@@ -25,13 +25,28 @@ model applications {
 }
 
 model companies {
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String      @db.VarChar(100)
+  industry_id  String?     @db.Uuid
+  location     String?     @db.VarChar(100)
+  created_at   DateTime?   @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime?   @default(now()) @db.Timestamptz(6)
+  logo         String?     @db.Text()
+  website      String?     @db.VarChar(100)
+
+  // Relations
+  positions    positions[]
+  industry     industry?   @relation(fields: [industry_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+}
+
+model industry {
   id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name       String      @db.VarChar(100)
-  industry   String?     @db.VarChar(50)
-  location   String?     @db.VarChar(100)
   created_at DateTime?   @default(now()) @db.Timestamptz(6)
   updated_at DateTime?   @default(now()) @db.Timestamptz(6)
-  positions  positions[]
+
+  // Reverse relation
+  companies  companies[]
 }
 
 model interview_rounds {

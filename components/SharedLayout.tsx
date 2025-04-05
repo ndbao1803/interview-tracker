@@ -15,6 +15,7 @@ import {
   User,
 } from "lucide-react"
 import { usePathname } from 'next/navigation'
+import { useState } from "react"
 
 const iconSize = 20
 const dashboardMenu = [
@@ -24,14 +25,14 @@ const dashboardMenu = [
     link: "/dashboard",
   },
   {
-    title: "Upload Screenshot", 
+    title: "Upload Screenshot",
     icon: <FileImage size={iconSize} />,
     link: "/dashboard/upload",
   },
   {
     title: "Companies",
     icon: <Briefcase size={iconSize} />,
-    link: "/dashboard/companies",
+    link: "/companies",
   },
   {
     title: "Interview Process",
@@ -81,7 +82,7 @@ export default function SharedLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname()
   const excludePaths = ['/', '/login', '/signup']
   const showSidebar = !excludePaths.includes(pathname || '')
-
+  const [openSideBar, setOpenSideBar] = useState(true)
   return (
     <div className="flex-1 w-full flex flex-col items-center bg-[#011627] min-h-screen">
       <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16 fixed top-0 z-50 bg-[#011627]">
@@ -93,10 +94,10 @@ export default function SharedLayout({ children }: { children: React.ReactNode }
       <div className="w-full flex mt-16 min-h-[calc(100vh-8rem-1px)]">
         {showSidebar && (
           <div className="fixed left-0 h-[calc(100vh-4rem)] ">
-            <SideBar menu={dashboardMenu} />
+            <SideBar menu={dashboardMenu} setOpenSideBar={setOpenSideBar} openSideBar={openSideBar} />
           </div>
         )}
-        <div className={`flex-1 ${showSidebar ? 'ml-[240px]' : ''}`}>
+        <div className={`flex-1 ${showSidebar ? openSideBar ? 'ml-[240px]' : 'ml-[40px]' : ''} transition-all`}>
           {children}
         </div>
       </div>

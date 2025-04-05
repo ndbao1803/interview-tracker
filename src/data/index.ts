@@ -1,0 +1,1 @@
+export const itemsPerPagination: number =9;

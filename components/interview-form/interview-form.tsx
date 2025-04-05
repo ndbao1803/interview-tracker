@@ -16,18 +16,11 @@ import { Progress } from "@/components/ui/progress"
 import { CompanyStep } from "./steps/company-step"
 import { PositionStep } from "./steps/position-step"
 import { ApplicationStep } from "./steps/application-step"
-import { InterviewStep } from "./steps/interview-step"
 import { ReviewStep } from "./steps/review-step"
 import { formSchema } from "./schema"
 import { createApplication } from "./action/action"
 
 // Mock data for companies and positions
-// In a real app, you would fetch this from your database
-export const mockCompanies = [
-  { id: "1", name: "Google" },
-  { id: "2", name: "Microsoft" },
-  { id: "3", name: "Amazon" },
-]
 
 export const mockPositions = [
   { id: "1", companyId: "1", title: "Software Engineer" },
@@ -43,9 +36,10 @@ const steps = [
   { id: "review", label: "Review" },
 ]
 
-export default function InterviewForm() {
+
+export default function InterviewForm({ companies }: { companies: any[] }) {
   const [currentStep, setCurrentStep] = useState(0)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState<any>(false)
 
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -191,13 +185,13 @@ export default function InterviewForm() {
   const renderStep = () => {
     switch (currentStep) {
       case 0:
-        return <CompanyStep form={form} mockCompanies={mockCompanies} />
+        return <CompanyStep form={form} mockCompanies={companies} />
       case 1:
         return <PositionStep form={form} filteredPositions={getFilteredPositions()} />
       case 2:
         return <ApplicationStep form={form} />
       case 3:
-        return <ReviewStep form={form} mockCompanies={mockCompanies} mockPositions={mockPositions} />
+        return <ReviewStep form={form} mockCompanies={companies} mockPositions={mockPositions} />
       default:
         return null
     }
@@ -213,17 +207,16 @@ export default function InterviewForm() {
               {steps.map((step, index) => (
                 <div
                   key={step.id}
-                  className={`text-xs font-medium ${
-                    index === currentStep ? "text-primary" : index < currentStep ? "text-[#cccccc]" : "text-[#8a8a8a]"
-                  }`}
+                  className={`text-xs font-medium ${index === currentStep ? "text-primary" : index < currentStep ? "text-[#cccccc]" : "text-[#8a8a8a]"
+                    }`}
                 >
                   {step.label}
                 </div>
               ))}
             </div>
-            <Progress 
-              value={progress} 
-              className="h-2 bg-[#3c3c3c] [&>div]:bg-primary" 
+            <Progress
+              value={progress}
+              className="h-2 bg-[#3c3c3c] [&>div]:bg-primary"
             />
           </div>
 

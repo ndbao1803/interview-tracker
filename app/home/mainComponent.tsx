@@ -41,10 +41,12 @@ export default function MainComponent() {
                 transition={{ duration: 0.5, delay: 0.4 }}
                 className="flex flex-col gap-2 min-[400px]:flex-row"
               >
-                <Button size="lg" className="bg-primary hover:bg-primary/90 text-white font-semibold">
+                <Link href={'/dashboard'}>
+                <Button size="lg" className="bg-primary hover:bg-primary/90 text-white font-semibold" >
                   Get Started
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
+                </Link>
                 <Button size="lg" variant="outline" className="hover:bg-secondary/10">
                   View Demo
                 </Button>

@@ -1,4 +1,4 @@
-import { db } from "@/src/lib/prisma";
+import { db } from "@/src/prisma/client";
 import { createArticle } from "@/src/lib/queries";
 import { createClient } from "@/utils/supabase/client";
 import { useState } from "react";
