@@ -1,10 +1,15 @@
 import { CompanyCard } from "@/components/CompanyCard";
 import { Pagination } from "@/components/ui/pagination";
+import PaginationComponent from "../PaginationComponent";
 
 interface CompanyListProps {
     companies: any[];
     currentPage: number;
-    totalPages: number;
+    pageInfo: {
+        totalCount: number;
+        totalPages: number;
+        currentPage: number;
+    };
     setCurrentPage: (page: number) => void;
     viewMode: "grid" | "list";
 }
@@ -12,11 +17,10 @@ interface CompanyListProps {
 export const CompanyList: React.FC<CompanyListProps> = ({
     companies,
     currentPage,
-    totalPages,
+    pageInfo,
     setCurrentPage,
     viewMode,
 }) => {
-    console.log(companies);
     return (
         <>
             <div
@@ -35,12 +39,11 @@ export const CompanyList: React.FC<CompanyListProps> = ({
                 ))}
             </div>
 
-            {totalPages > 1 && (
-                <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
+            {pageInfo.totalPages > 1 && (
+                <PaginationComponent
+                    currentPage={pageInfo.currentPage}
+                    totalPages={pageInfo.totalPages}
                     onPageChange={setCurrentPage}
-                    className="mt-6"
                 />
             )}
         </>

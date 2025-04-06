@@ -23,7 +23,7 @@ export const IndustryFilter: React.FC<IndustryFilterProps> = ({
             <DropdownMenuTrigger asChild>
                 <Button
                     variant="outline"
-                    className="border-[#3c3c3c] bg-[#2d2d2d] hover:bg-[#3e3e3e]"
+                    className="border-[#3c3c3c] bg-[#2d2d2d] hover:bg-[#3e3e3e] mx-2"
                 >
                     <Filter className="mr-2 h-4 w-4" />
                     Industry

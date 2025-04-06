@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 interface Company {
     id: string;
     name: string;
-    industry: string;
+    industry: {
+        name: string;
+    };
     location: string;
     logo: string;
     applicationsCount: number;
@@ -51,7 +53,7 @@ export function CompanyCard({ company, viewMode }: CompanyCardProps) {
                                     </div>
                                 </div>
                                 <Badge className="bg-[#1e1e1e] text-[#cccccc] border-[#3c3c3c]">
-                                    {company.industry}
+                                    {company.industry.name}
                                 </Badge>
                             </div>
 
@@ -132,7 +134,7 @@ export function CompanyCard({ company, viewMode }: CompanyCardProps) {
                         </div>
                     </div>
                     <Badge className="bg-[#1e1e1e] text-[#cccccc] border-[#3c3c3c]">
-                        {company.industry}
+                        {company.industry.name}
                     </Badge>
                 </div>
 
