@@ -2,7 +2,11 @@
 import { prisma } from "./client";
 
 export async function getAllCompanies() {
-    const res = await prisma.companies.findMany();
+    const res = await prisma.companies.findMany({
+        include: {
+            industry: true,
+        },
+    });
     return res;
 }
 

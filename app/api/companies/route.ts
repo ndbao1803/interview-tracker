@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 // Prisma Client instance
@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 type CompaniesApiResponse = {
     companies: any[]; // Replace with the actual Company type if available
     industries: string[];
-    pages: {
+    pageInfo: {
         totalCount: number;
         totalPages: number;
         currentPage: number;
@@ -54,9 +54,10 @@ export async function GET(request: NextRequest) {
             "updated_at",
             "location",
         ];
-        const orderByClause = allowedSortFields.includes(sortBy)
-            ? { [sortBy]: "asc" }
-            : { name: "asc" }; // Fallback sorting by name
+        const orderByClause: Prisma.companiesOrderByWithRelationInput =
+            allowedSortFields.includes(sortBy)
+                ? { [sortBy]: "asc" as Prisma.SortOrder }
+                : { name: "asc" as Prisma.SortOrder };
 
         // Fetch companies with pagination
         const companies = await prisma.companies.findMany({
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest) {
         const response: CompaniesApiResponse = {
             companies,
             industries: industriesList.map((i) => i.name),
-            pages: {
+            pageInfo: {
                 totalCount,
                 totalPages,
                 currentPage: page,

@@ -7,6 +7,7 @@ import { SortSelect } from "./SortSelect";
 import { ViewModeToggle } from "./ViewModeToogle";
 import { itemsPerPagination } from "@/src/data";
 import { getSearchFilterPaginationCompanies } from "@/src/services/companies";
+import { setISODay } from "date-fns";
 
 export default function CompaniesDashboardComponent() {
     const [companies, setCompanies] = useState<any[]>([]);
@@ -16,9 +17,11 @@ export default function CompaniesDashboardComponent() {
     const [sortBy, setSortBy] = useState("applicationsCount");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageInfo, setPageInfo] = useState({});
+    const [pageInfo, setPageInfo] = useState<any>({});
+    const [isLoading, setLoading] = useState(false);
     useEffect(() => {
         const fetchData = async () => {
+            setLoading(true);
             const res = await getSearchFilterPaginationCompanies(
                 searchQuery,
                 selectedIndustries,
@@ -27,13 +30,12 @@ export default function CompaniesDashboardComponent() {
             );
             setCompanies(res.companies);
             setIndustries(res.industries);
-            setPageInfo(res.pages);
+            setPageInfo(res.pageInfo);
+            setLoading(false);
         };
 
         fetchData();
     }, [searchQuery, selectedIndustries, sortBy, currentPage]);
-
-    const totalPages = Math.ceil(companies?.length / itemsPerPagination);
 
     return (
         <div className="container px-4 md:px-6 py-6">
@@ -52,12 +54,14 @@ export default function CompaniesDashboardComponent() {
                 <SortSelect sortBy={sortBy} setSortBy={setSortBy} />
                 <ViewModeToggle viewMode={viewMode} setViewMode={setViewMode} />
             </div>
+
             <CompanyList
                 companies={companies}
                 currentPage={currentPage}
                 pageInfo={pageInfo}
                 setCurrentPage={setCurrentPage}
                 viewMode={viewMode}
+                isLoading={isLoading}
             />
         </div>
     );

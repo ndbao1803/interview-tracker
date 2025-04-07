@@ -4,7 +4,7 @@ import { Company } from "@/types/company";
 type CompaniesApiResponse = {
     companies: Company[];
     industries: string[];
-    pages: {
+    pageInfo: {
         totalCount: number;
         totalPages: number;
         currentPage: number;

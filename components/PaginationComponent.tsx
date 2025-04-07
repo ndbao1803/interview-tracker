@@ -43,7 +43,7 @@ const PaginationComponent: React.FC<PaginationProps> = ({
     };
 
     return (
-        <Pagination>
+        <Pagination className="mt-10">
             <PaginationContent>
                 {/* Previous Button */}
                 <PaginationItem>
@@ -51,9 +51,15 @@ const PaginationComponent: React.FC<PaginationProps> = ({
                         href="#"
                         onClick={(e) => {
                             e.preventDefault();
-                            handlePageChange(currentPage - 1);
+                            if (currentPage > 1) {
+                                handlePageChange(currentPage - 1);
+                            }
                         }}
-                        disabled={currentPage === 1}
+                        className={
+                            currentPage === 1
+                                ? "pointer-events-none opacity-50"
+                                : ""
+                        }
                     />
                 </PaginationItem>
 
@@ -86,9 +92,15 @@ const PaginationComponent: React.FC<PaginationProps> = ({
                         href="#"
                         onClick={(e) => {
                             e.preventDefault();
-                            handlePageChange(currentPage + 1);
+                            if (currentPage < totalPages) {
+                                handlePageChange(currentPage + 1);
+                            }
                         }}
-                        disabled={currentPage === totalPages}
+                        className={
+                            currentPage === totalPages
+                                ? "pointer-events-none opacity-50"
+                                : ""
+                        }
                     />
                 </PaginationItem>
             </PaginationContent>

@@ -86,9 +86,8 @@ export function CompanyCard({ company, viewMode }: CompanyCardProps) {
                                             {company.successRate}%
                                         </p>
                                         <Progress
-                                            value={company.successRate}
+                                            value={0}
                                             className="h-1.5 w-16 bg-[#3c3c3c]"
-                                            indicatorClassName="bg-[#0e639c]"
                                         />
                                     </div>
                                 </div>
@@ -152,7 +151,7 @@ export function CompanyCard({ company, viewMode }: CompanyCardProps) {
                     <div className="flex justify-between items-center">
                         <div className="flex items-center text-sm">
                             <Building2 className="h-4 w-4 mr-2 text-[#8a8a8a]" />
-                            Open Positions
+                            Successful application
                         </div>
                         <span className="font-medium">
                             {company.openPositions}
@@ -162,7 +161,7 @@ export function CompanyCard({ company, viewMode }: CompanyCardProps) {
                     <div className="flex justify-between items-center">
                         <div className="flex items-center text-sm">
                             <Clock className="h-4 w-4 mr-2 text-[#8a8a8a]" />
-                            Avg. Response Time
+                            Response time
                         </div>
                         <span className="font-medium">
                             {company.averageResponseTime}
@@ -182,7 +181,6 @@ export function CompanyCard({ company, viewMode }: CompanyCardProps) {
                         <Progress
                             value={company.successRate}
                             className="h-2 bg-[#3c3c3c]"
-                            indicatorClassName="bg-[#0e639c]"
                         />
                     </div>
                 </div>
