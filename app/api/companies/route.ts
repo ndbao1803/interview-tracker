@@ -70,6 +70,11 @@ export async function GET(request: NextRequest) {
             },
         });
 
+        // Log the first company to debug
+        if (companies.length > 0) {
+            console.log("First company from API:", JSON.stringify(companies[0], null, 2));
+        }
+
         // Fetch the total count of companies matching the search and filters
         const totalCount = await prisma.companies.count({
             where: whereClause,
