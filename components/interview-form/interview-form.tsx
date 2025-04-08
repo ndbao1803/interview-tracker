@@ -186,7 +186,7 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
     const renderStep = () => {
         switch (currentStep) {
             case 0:
-                return <CompanyStep form={form} companies={companies} />;
+                return <CompanyStep form={form} />;
             case 1:
                 return (
                     <PositionStep
