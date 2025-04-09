@@ -25,18 +25,19 @@ model applications {
 }
 
 model companies {
-  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name         String      @db.VarChar(100)
-  industry_id  String?     @db.Uuid
-  location     String?     @db.VarChar(100)
-  created_at   DateTime?   @default(now()) @db.Timestamptz(6)
-  updated_at   DateTime?   @default(now()) @db.Timestamptz(6)
-  logo         String?     @db.Text()
-  website      String?     @db.VarChar(100)
+  id          String    @id @default(cuid())
+  name        String
+  industry_id String?
+  industry    industry? @relation(fields: [industry_id], references: [id])
+  location    String?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  website     String?
+  logo_url    String?   // URL to the stored logo
+  logo_key    String?   // Storage key/path for the logo
+  positions   positions[]
 
-  // Relations
-  positions    positions[]
-  industry     industry?   @relation(fields: [industry_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  @@index([industry_id])
 }
 
 model industry {

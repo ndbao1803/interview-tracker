@@ -219,13 +219,12 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
                             {steps.map((step, index) => (
                                 <div
                                     key={step.id}
-                                    className={`text-xs font-medium ${
-                                        index === currentStep
-                                            ? "text-primary"
-                                            : index < currentStep
+                                    className={`text-xs font-medium ${index === currentStep
+                                        ? "text-primary"
+                                        : index < currentStep
                                             ? "text-[#cccccc]"
                                             : "text-[#8a8a8a]"
-                                    }`}
+                                        }`}
                                 >
                                     {step.label}
                                 </div>

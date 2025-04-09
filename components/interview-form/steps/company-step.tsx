@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronsUpDown } from "lucide-react";
 import {
     FormControl,
@@ -49,10 +49,19 @@ export function CompanyStep({ form }: { form: UseFormReturn<FormValues> }) {
         fetchCompanies,
     } = useCompanySearch();
 
+    // Initial fetch for industries
+    useEffect(() => {
+        if (industries.length === 0) {
+            fetchCompanies(true);
+        }
+    }, [industries.length, fetchCompanies]);
+
     const handleSelectCompany = (companyId: string) => {
         form.setValue("existingCompanyId", companyId);
+        console.log(companyId);
         setOpen(false);
     };
+    console.log(industries)
 
     return (
         <div>
@@ -107,10 +116,10 @@ export function CompanyStep({ form }: { form: UseFormReturn<FormValues> }) {
                                             >
                                                 {field.value
                                                     ? companies.find(
-                                                          (company) =>
-                                                              company.id ===
-                                                              field.value
-                                                      )?.name || "Loading..."
+                                                        (company) =>
+                                                            company.id ===
+                                                            field.value
+                                                    )?.name || "Loading..."
                                                     : "Search for a company..."}
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
@@ -159,7 +168,7 @@ export function CompanyStep({ form }: { form: UseFormReturn<FormValues> }) {
                                         <Input
                                             placeholder="Enter company name"
                                             {...field}
-                                            className="border-[#3c3c3c] bg-[#1e1e1e] focus-visible:ring-[#0e639c]"
+                                            className="border-[#3c3c3c] bg-[#1e1e1e] focus-visible:ring-primary"
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -177,12 +186,12 @@ export function CompanyStep({ form }: { form: UseFormReturn<FormValues> }) {
                                         value={field.value || ""}
                                     >
                                         <FormControl>
-                                            <SelectTrigger className="border-[#3c3c3c] bg-[#1e1e1e] focus:ring-[#0e639c]">
+                                            <SelectTrigger className="border-[#3c3c3c] bg-[#1e1e1e] focus:ring-primary">
                                                 <SelectValue placeholder="Select an industry" />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent className="border-[#3c3c3c] bg-[#252526] text-[#cccccc]">
-                                            {industries.map((industry) => (
+                                            {industries.length > 0 && industries.map((industry) => (
                                                 <SelectItem
                                                     key={industry}
                                                     value={industry}
@@ -206,8 +215,66 @@ export function CompanyStep({ form }: { form: UseFormReturn<FormValues> }) {
                                         <Input
                                             placeholder="e.g. San Francisco, CA"
                                             {...field}
-                                            className="border-[#3c3c3c] bg-[#1e1e1e] focus-visible:ring-[#0e639c]"
+                                            className="border-[#3c3c3c] bg-[#1e1e1e] focus-visible:ring-primary"
                                         />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="newCompanyWebsite"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Website (Optional)</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="url"
+                                            placeholder="https://example.com"
+                                            {...field}
+                                            className="border-[#3c3c3c] bg-[#1e1e1e] focus-visible:ring-primary"
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="newCompanyLogo"
+                            render={({ field: { value, onChange, ...field } }) => (
+                                <FormItem>
+                                    <FormLabel>Company Logo (Optional)</FormLabel>
+                                    <FormControl>
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        onChange(file);
+                                                    }
+                                                }}
+                                                className="border-[#3c3c3c] bg-[#1e1e1e] focus-visible:ring-primary file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/80"
+                                                {...field}
+                                            />
+                                            {value && (
+                                                <div className="relative w-10 h-10 rounded-md overflow-hidden">
+                                                    <img
+                                                        src={typeof value === 'string' ? value : URL.createObjectURL(value)}
+                                                        alt="Logo preview"
+                                                        className="object-cover w-full h-full"
+                                                        onLoad={() => {
+                                                            if (value instanceof File) {
+                                                                URL.revokeObjectURL(URL.createObjectURL(value));
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

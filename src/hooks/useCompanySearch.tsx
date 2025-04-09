@@ -1,13 +1,18 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { getAllIndustries } from "../prisma/industryService";
+import { getSearchFilterPaginationCompanies } from "../services/companies";
 
 interface Company {
     id: string;
     name: string;
-    industry: {
+    industry?: {
+        id: string;
         name: string;
-    };
+        created_at?: string;
+        updated_at?: string;
+    } | null;
 }
 
 interface CompaniesResponse {
@@ -17,7 +22,6 @@ interface CompaniesResponse {
         totalCount: number;
         totalPages: number;
         currentPage: number;
-        hasMore: boolean;
     };
 }
 
@@ -67,45 +71,28 @@ export function useCompanySearch() {
     const fetchCompanies = useCallback(
         async (isNewSearch = false) => {
             try {
-                const currentPage = isNewSearch ? 1 : page;
+                let currentPage;
                 if (isNewSearch) {
                     setCompanies([]);
                     setPage(1);
+                    currentPage = 1;
+                } else {
+                    currentPage = page + 1;
+                    setPage(currentPage);
                 }
-
+                console.log(`isNewSearch: ${isNewSearch}, page: ${currentPage}`);
                 setLoading(true);
                 setError(null);
 
-                // Use the current value from the ref to ensure we have the latest
                 const currentSearchQuery = searchQueryRef.current;
-                const industriesParam = selectedIndustries.join(",");
-
-                console.log(`Fetching with query: "${currentSearchQuery}"`);
-
-                const response = await fetch(
-                    `/api/companies?search=${currentSearchQuery}&industries=${industriesParam}&page=${currentPage}&limit=20`
-                );
-
-                if (!response.ok) {
-                    throw new Error("Failed to fetch companies");
-                }
-
-                const data: CompaniesResponse = await response.json();
-
-                console.log("API Response:", data);
-                console.log("Companies from API:", data.companies);
-
-                // Check if companies have the expected structure
-                if (data.companies.length > 0) {
-                    console.log("First company structure:", JSON.stringify(data.companies[0], null, 2));
-                }
+                const response = await getSearchFilterPaginationCompanies(currentSearchQuery, selectedIndustries, currentPage, "");
 
                 setCompanies((prev) =>
-                    isNewSearch ? data.companies : [...prev, ...data.companies]
+                    isNewSearch ? response.companies : [...prev, ...response.companies]
                 );
-                setIndustries(data.industries);
-                setHasMore(data.pageInfo.hasMore);
-                if (!isNewSearch) setPage((prev) => prev + 1);
+                setIndustries(response.industries);
+                setHasMore(response.pageInfo.currentPage < response.pageInfo.totalPages);
+
             } catch (err) {
                 setError(
                     err instanceof Error
@@ -116,7 +103,7 @@ export function useCompanySearch() {
                 setLoading(false);
             }
         },
-        [selectedIndustries, page] // Remove searchQuery from dependencies, using ref instead
+        [selectedIndustries, page]
     );
 
     const handleSearchChange = (value: string) => {
@@ -136,11 +123,18 @@ export function useCompanySearch() {
     };
 
     const toggleIndustry = (industry: string) => {
-        setSelectedIndustries((prev) =>
-            prev.includes(industry)
-                ? prev.filter((i) => i !== industry)
-                : [...prev, industry]
-        );
+        // Update selected industries state
+        const newSelectedIndustries = selectedIndustries.includes(industry)
+            ? selectedIndustries.filter((i) => i !== industry)
+            : [...selectedIndustries, industry];
+
+        setSelectedIndustries(newSelectedIndustries);
+
+        // Reset page to 1 and trigger new search with updated filters
+        setPage(1);
+        setCompanies([]);
+
+
     };
 
     // Clean up the timeout on unmount

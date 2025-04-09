@@ -1,13 +1,29 @@
 import { z } from "zod"
 
+// Custom file validation
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
 // Form schema for the entire form
 export const formSchema = z.object({
-  // Company section
+  // Company Information
   companyType: z.enum(["existing", "new"]),
   existingCompanyId: z.string().optional(),
-  newCompanyName: z.string().min(1, "Company name is required").optional(),
+  newCompanyName: z.string().optional(),
   newCompanyIndustry: z.string().optional(),
   newCompanyLocation: z.string().optional(),
+  newCompanyWebsite: z.string().url().optional().or(z.literal("")),
+  newCompanyLogo: z.custom<File>()
+    .refine((file) => !file || file instanceof File, "Must be a valid file")
+    .refine(
+      (file) => !file || file.size <= MAX_FILE_SIZE,
+      "File size must be less than 5MB"
+    )
+    .refine(
+      (file) => !file || ACCEPTED_IMAGE_TYPES.includes(file.type),
+      "Only .jpg, .jpeg, .png and .webp formats are supported"
+    )
+    .optional(),
 
   // Position section
   positionType: z.enum(["existing", "new"]),

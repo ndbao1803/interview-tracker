@@ -109,3 +109,41 @@ export async function GET(request: NextRequest) {
         );
     }
 }
+
+// Add POST method to handle company selection
+export async function POST(request: NextRequest) {
+    try {
+        const body = await request.json();
+        const { companyId } = body;
+
+        if (!companyId) {
+            return NextResponse.json(
+                { error: "Company ID is required" },
+                { status: 400 }
+            );
+        }
+
+        // Fetch the selected company
+        const company = await prisma.companies.findUnique({
+            where: { id: companyId },
+            include: {
+                industry: true,
+            },
+        });
+
+        if (!company) {
+            return NextResponse.json(
+                { error: "Company not found" },
+                { status: 404 }
+            );
+        }
+
+        return NextResponse.json({ company });
+    } catch (error: any) {
+        console.error("Error selecting company:", error);
+        return NextResponse.json(
+            { error: error.message || "Unknown error" },
+            { status: 500 }
+        );
+    }
+}

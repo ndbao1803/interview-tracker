@@ -13,21 +13,8 @@ import {
     CommandList,
     CommandSeparator, // Added for better visual separation
 } from "@/components/ui/command";
+import { Company } from "@/types/company";
 
-interface Company {
-    id: string;
-    name: string;
-    industry_id?: string;
-    industry?: {
-        id?: string;
-        name?: string;
-    };
-    location?: string;
-    created_at?: string;
-    updated_at?: string;
-    logo?: string | null;
-    website?: string | null;
-}
 
 interface CompanySearchProps {
     searchQuery: string;
@@ -78,11 +65,13 @@ export function CompanySearch({
 
         const observer = new IntersectionObserver(
             (entries) => {
-                if (entries[0].isIntersecting && hasMore && isOpen) {
-                    fetchCompanies(false); // Load more, not a new search
+                const firstEntry = entries[0];
+                if (firstEntry.isIntersecting && hasMore && isOpen && !loading) {
+                    console.log('Loading more companies...');
+                    fetchCompanies(false);
                 }
             },
-            { threshold: 0.5 }
+            { threshold: 0.1 }
         );
 
         observerRef.current = observer;
@@ -101,7 +90,6 @@ export function CompanySearch({
     // Initial fetch
     useEffect(() => {
         if (isOpen && companies.length === 0 && !loading) {
-            console.log("Initial fetch triggered");
             fetchCompanies(true);
         }
     }, [isOpen, companies.length, loading, fetchCompanies]);
@@ -123,10 +111,7 @@ export function CompanySearch({
         console.log("GroupedCompanies keys:", Object.keys(groupedCompanies));
         console.log("GroupedCompanies length:", Object.keys(groupedCompanies).length);
 
-        // Check if any companies exist
-        if (companies.length > 0) {
-            console.log("First company:", companies[0]);
-        }
+
     };
 
     // Call debug function when companies change
@@ -167,7 +152,7 @@ export function CompanySearch({
                                 className={cn(
                                     "cursor-pointer text-xs py-0.5",
                                     selectedIndustries.includes(industry)
-                                        ? "bg-[#0e639c] hover:bg-[#0e639c]/80"
+                                        ? "bg-primary hover:bg-primary/80"
                                         : "bg-transparent hover:bg-[#3c3c3c] border-[#3c3c3c]"
                                 )}
                                 onClick={() => onToggleIndustry(industry)}
@@ -203,26 +188,39 @@ export function CompanySearch({
 
                 {/* Company List */}
                 {companies.length > 0 && (
-                    <CommandGroup heading="Companies">
-                        {companies.map((company) => (
-                            <CommandItem
-                                key={company.id}
-                                value={company.name}
-                                onSelect={() => onSelectCompany(company.id)}
-                                className="cursor-pointer"
+                    <>
+                        {sortedIndustries.map((industry) => (
+                            <CommandGroup
+                                key={industry}
+                                heading={industry}
+                                className="border-t border-[#3c3c3c] first:border-t-0"
                             >
-                                <Check
-                                    className={cn(
-                                        "mr-2 h-4 w-4",
-                                        company.id === selectedCompanyId
-                                            ? "opacity-100"
-                                            : "opacity-0"
-                                    )}
-                                />
-                                {company.name}
-                            </CommandItem>
+
+                                {groupedCompanies[industry].map((company) => (
+                                    <CommandItem
+                                        key={company.id}
+                                        value={company.name}
+                                        onSelect={async () => {
+
+                                            onSelectCompany(company.id);
+
+                                        }}
+                                        className="cursor-pointer hover:bg-[#3c3c3c]"
+                                    >
+                                        <Check
+                                            className={cn(
+                                                "mr-2 h-4 w-4",
+                                                company.id === selectedCompanyId
+                                                    ? "opacity-100"
+                                                    : "opacity-0"
+                                            )}
+                                        />
+                                        {company.name}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
                         ))}
-                    </CommandGroup>
+                    </>
                 )}
 
                 {/* Loading indicator for infinite scroll */}
