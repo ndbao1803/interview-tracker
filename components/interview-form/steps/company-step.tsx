@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ChevronsUpDown } from "lucide-react";
 import {
     FormControl,
@@ -17,22 +17,29 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import type { UseFormReturn } from "react-hook-form";
-import type { formSchema } from "../schema";
-import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useFormContext } from "react-hook-form";
+import { FormValues } from "../schema";
 import { useCompanySearch } from "@/src/hooks/useCompanySearch";
 import { CompanySearch } from "@/components/companies/CompanySearch";
 
-type FormValues = z.infer<typeof formSchema>;
-
-export function CompanyStep({ form }: { form: UseFormReturn<FormValues> }) {
+export function CompanyStep() {
+    const form = useFormContext<FormValues>();
+    const [isReviewOpen, setIsReviewOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [open, setOpen] = useState(false);
+    const [selectedCompany, setSelectedCompany] = useState<{
+        id: string;
+        name: string;
+        industry: string;
+        logo_url?: string;
+    } | null>(null);
 
     const {
         searchQuery,
@@ -56,15 +63,71 @@ export function CompanyStep({ form }: { form: UseFormReturn<FormValues> }) {
         }
     }, [industries.length, fetchCompanies]);
 
-    const handleSelectCompany = (companyId: string) => {
-        form.setValue("existingCompanyId", companyId);
-        console.log(companyId);
-        setOpen(false);
+    const handleCompanySelect = useCallback((company: { id: string; name: string; industry: string; logo?: string }) => {
+        setSelectedCompany(company);
+
+        form.setValue("existingCompanyId", company.id, {
+            shouldValidate: true,
+            shouldDirty: true,
+            shouldTouch: true
+        });
+    }, [form]);
+
+    // Add a wrapper function to adapt the CompanySearch's onSelectCompany callback
+    const handleCompanySelectWrapper = useCallback((companyId: string) => {
+        // Find the company in the companies array
+        const company = companies.find(c => c.id === companyId);
+        if (company) {
+            handleCompanySelect({
+                id: company.id,
+                name: company.name,
+                industry: company.industry?.name || '',
+                logo: company.logo_url
+            });
+            setOpen(false);
+        }
+
+    }, [companies, handleCompanySelect]);
+
+
+
+    const handleConfirm = async () => {
+        setIsSubmitting(true);
+        try {
+            if (form.getValues("companyType") === "new") {
+                const response = await fetch("/api/companies", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        name: form.getValues("newCompanyName"),
+                        industry: form.getValues("newCompanyIndustry"),
+                        location: form.getValues("newCompanyLocation"),
+                        website: form.getValues("newCompanyWebsite"),
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to create company");
+                }
+
+                const company = await response.json();
+                form.setValue("existingCompanyId", company.id);
+            }
+
+            form.next();
+        } catch (error) {
+            console.error("Error creating company:", error);
+            // Handle error appropriately
+        } finally {
+            setIsSubmitting(false);
+            setIsReviewOpen(false);
+        }
     };
-    console.log(industries)
 
     return (
-        <div>
+        <div className="space-y-6">
             <h2 className="text-xl font-semibold mb-4">Company Information</h2>
             <div className="space-y-4">
                 {/* Company Type Selection */}
@@ -142,7 +205,7 @@ export function CompanyStep({ form }: { form: UseFormReturn<FormValues> }) {
                                             sortedIndustries={sortedIndustries}
                                             selectedCompanyId={field.value}
                                             onSelectCompany={
-                                                handleSelectCompany
+                                                handleCompanySelectWrapper
                                             }
                                             fetchCompanies={fetchCompanies}
                                             isOpen={open}
@@ -251,10 +314,18 @@ export function CompanyStep({ form }: { form: UseFormReturn<FormValues> }) {
                                             <Input
                                                 type="file"
                                                 accept="image/*"
-                                                onChange={(e) => {
+                                                onChange={async (e) => {
                                                     const file = e.target.files?.[0];
                                                     if (file) {
+                                                        // Create a preview URL
+                                                        const previewUrl = URL.createObjectURL(file);
+
+                                                        // Store the file for later upload
                                                         onChange(file);
+                                                        form.setValue("newCompanyLogo", previewUrl);
+
+                                                        // Clean up the preview URL when component unmounts
+                                                        return () => URL.revokeObjectURL(previewUrl);
                                                     }
                                                 }}
                                                 className="border-[#3c3c3c] bg-[#1e1e1e] focus-visible:ring-primary file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/80"
@@ -266,11 +337,6 @@ export function CompanyStep({ form }: { form: UseFormReturn<FormValues> }) {
                                                         src={typeof value === 'string' ? value : URL.createObjectURL(value)}
                                                         alt="Logo preview"
                                                         className="object-cover w-full h-full"
-                                                        onLoad={() => {
-                                                            if (value instanceof File) {
-                                                                URL.revokeObjectURL(URL.createObjectURL(value));
-                                                            }
-                                                        }}
                                                     />
                                                 </div>
                                             )}
@@ -283,6 +349,74 @@ export function CompanyStep({ form }: { form: UseFormReturn<FormValues> }) {
                     </>
                 )}
             </div>
+
+            <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Review Company Information</DialogTitle>
+                        <DialogDescription>
+                            Please review the company information before proceeding.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        {form.watch("companyType") === "existing" && selectedCompany ? (
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-4">
+                                    {selectedCompany.logo_url && (
+                                        <img
+                                            src={selectedCompany.logo_url}
+                                            alt="Company logo"
+                                            className="h-12 w-12 object-contain"
+                                        />
+                                    )}
+                                    <div>
+                                        <h3 className="font-medium">{selectedCompany.name}</h3>
+                                        <p className="text-sm text-gray-500">{selectedCompany.industry}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="space-y-2">
+                                    <p className="font-semibold">New Company Details:</p>
+                                    <div className="flex items-center gap-3">
+                                        {form.watch("newCompanyLogo") && (
+                                            <img
+                                                src={
+                                                    form.watch("newCompanyLogo") instanceof File
+                                                        ? URL.createObjectURL(form.watch("newCompanyLogo"))
+                                                        : typeof form.watch("newCompanyLogo") === "string"
+                                                            ? form.watch("newCompanyLogo")
+                                                            : ""
+                                                }
+                                                alt="Company logo"
+                                                className="w-10 h-10 rounded-md object-cover"
+                                            />
+                                        )}
+                                        <div>
+                                            <p className="font-medium">{form.watch("newCompanyName")}</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {form.watch("newCompanyIndustry")}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="font-medium">Location:</p>
+                                    <p>{form.watch("newCompanyLocation")}</p>
+                                </div>
+                                {form.watch("newCompanyWebsite") && (
+                                    <div>
+                                        <p className="font-medium">Website:</p>
+                                        <p>{form.watch("newCompanyWebsite")}</p>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

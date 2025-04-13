@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
@@ -12,22 +12,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { Progress } from "@/components/ui/progress";
-
 import { CompanyStep } from "./steps/company-step";
 import { PositionStep } from "./steps/position-step";
 import { ApplicationStep } from "./steps/application-step";
 import { ReviewStep } from "./steps/review-step";
 import { formSchema } from "./schema";
-import { createApplication } from "./action/action";
 
-// Mock data for companies and positions
-
-export const mockPositions = [
-    { id: "1", companyId: "1", title: "Software Engineer" },
-    { id: "2", companyId: "1", title: "Product Manager" },
-    { id: "3", companyId: "2", title: "Frontend Developer" },
-    { id: "4", companyId: "3", title: "Data Scientist" },
-];
 
 const steps = [
     { id: "company", label: "Company" },
@@ -46,26 +36,112 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
         defaultValues: {
             companyType: "existing",
             positionType: "existing",
-            totalRounds: 3,
-            interviewStatus: "Scheduled",
+            totalRounds: 1,
         },
-        mode: "onChange",
+        mode: "onTouched",
     });
 
     const { formState } = form;
-    const { isValid } = formState;
+    const { errors, dirtyFields } = formState;
+
+    // Custom isValid calculation based on current step
+    const isStepValid = () => {
+        const currentValues = form.getValues();
+
+        switch (currentStep) {
+            case 0: // Company step
+                if (currentValues.companyType === "existing") {
+                    console.log("existingCompanyId", currentValues.existingCompanyId);
+                    return !!currentValues.existingCompanyId;
+                } else {
+                    return !!(
+                        currentValues.newCompanyName &&
+                        currentValues.newCompanyIndustry &&
+                        currentValues.newCompanyLocation
+                    );
+                }
+            case 1: // Position step
+                if (currentValues.positionType === "existing") {
+                    return !!currentValues.existingPositionId;
+                } else {
+                    return !!currentValues.newPositionTitle;
+                }
+            case 2: // Application step
+                return !!currentValues.totalRounds;
+            case 3: // Review step
+                return true;
+            default:
+                return false;
+        }
+    };
+
+    // Calculate if the current step is valid and dirty
+    const isCurrentStepValid = isStepValid() && form.formState.isDirty;
+
+    // Debug form state
+    useEffect(() => {
+        console.log('Form State:', {
+            isValid: isCurrentStepValid,
+            isDirty: formState.isDirty,
+            dirtyFields,
+            errors,
+            values: form.getValues(),
+            currentStep,
+        });
+    }, [isCurrentStepValid, formState.isDirty, dirtyFields, errors, currentStep]);
 
     // Calculate progress percentage
     const progress = ((currentStep + 1) / steps.length) * 100;
 
+    // Get fields to validate for the current step
+    const getFieldsToValidate = (
+        step: number
+    ): Array<keyof z.infer<typeof formSchema>> => {
+        switch (step) {
+            case 0: // Company step
+                return form.watch("companyType") === "existing"
+                    ? ["companyType", "existingCompanyId"]
+                    : ["companyType", "newCompanyName", "newCompanyIndustry", "newCompanyLocation"];
+            case 1: // Position step
+                return form.watch("positionType") === "existing"
+                    ? ["positionType", "existingPositionId"]
+                    : ["positionType", "newPositionTitle"];
+            case 2: // Application step
+                return ["totalRounds", "applicationNote"];
+            case 3: // Interview step
+                return form.watch("interviewType") === "existing"
+                    ? ["interviewType", "existingInterviewId", "interviewStatus"]
+                    : ["interviewType", "newInterviewTitle", "interviewStatus"];
+            default:
+                return [];
+        }
+    };
+
     // Handle next step
     const handleNext = async () => {
-        // Validate the current step before proceeding
         const fieldsToValidate = getFieldsToValidate(currentStep);
-        const isStepValid = await form.trigger(fieldsToValidate);
+
+        // Check if any required fields are empty
+        const currentValues = form.getValues();
+        const isStepValid = fieldsToValidate.every(field => {
+            const value = currentValues[field];
+            // Skip validation for optional fields
+            if (field === "applicationNote" ||
+                field === "newCompanyWebsite" ||
+                field === "newCompanyLogo" ||
+                field === "newPositionDescription" ||
+                field === "interviewFeedback" ||
+                field === "interviewNote") {
+                return true;
+            }
+            return value !== undefined && value !== "";
+        });
 
         if (isStepValid) {
             setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
+        } else {
+            // Trigger validation to show error messages
+            await form.trigger(fieldsToValidate);
         }
     };
 
@@ -95,91 +171,35 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
         return false;
     };
 
-    // Get fields to validate for the current step
-    const getFieldsToValidate = (
-        step: number
-    ): Array<keyof z.infer<typeof formSchema>> => {
-        switch (step) {
-            case 0: // Company step
-                return form.watch("companyType") === "existing"
-                    ? ["companyType", "existingCompanyId"]
-                    : ["companyType", "newCompanyName"];
-            case 1: // Position step
-                return form.watch("positionType") === "existing"
-                    ? ["positionType", "existingPositionId"]
-                    : ["positionType", "newPositionTitle"];
-            case 2: // Application step
-                return ["totalRounds"];
-            case 3: // Interview step
-                return ["interviewStatus"];
-            default:
-                return [];
-        }
-    };
 
-    // Filter positions based on selected company
-    const getFilteredPositions = () => {
-        const companyId = form.watch("existingCompanyId");
-        if (!companyId) return [];
-        return mockPositions.filter((pos) => pos.companyId === companyId);
+    // Function to upload logo file
+    const uploadLogo = async (file: File) => {
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const response = await fetch("/api/upload", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to upload logo");
+            }
+
+            const data = await response.json();
+            return data.url;
+        } catch (error) {
+            console.error("Error uploading logo:", error);
+            return null;
+        }
     };
 
     // Handle form submission
     const onSubmit = async (data: z.infer<typeof formSchema>) => {
-        try {
-            setIsSubmitting(true);
 
-            // Format the data to match the expected structure
-            const formattedData = {
-                company: {
-                    companyType: data.companyType,
-                    existingCompanyId: data.existingCompanyId,
-                    newCompanyName: data.newCompanyName,
-                    newCompanyIndustry: data.newCompanyIndustry,
-                    newCompanyLocation: data.newCompanyLocation,
-                },
-                position: {
-                    positionType: data.positionType,
-                    existingPositionId: data.existingPositionId,
-                    newPositionTitle: data.newPositionTitle,
-                    newPositionDescription: data.newPositionDescription,
-                },
-                application: {
-                    totalRounds: data.totalRounds,
-                    note: data.applicationNote,
-                },
-                interviewRound: {
-                    roundNumber: 1,
-                    status: data.interviewStatus,
-                    feedback: data.interviewFeedback,
-                    note: data.interviewNote,
-                },
-            };
 
-            // Submit the data
-            await createApplication(formattedData);
 
-            toast({
-                title: "Application created!",
-                description: "Your interview has been successfully tracked.",
-            });
-
-            // Reset the form and go back to first step
-            form.reset();
-            setCurrentStep(0);
-
-            // Scroll to top
-            window.scrollTo({ top: 0, behavior: "smooth" });
-        } catch (error) {
-            console.error("Error submitting form:", error);
-            toast({
-                title: "Error",
-                description: "There was a problem creating your application.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
     };
 
     // Render the current step
@@ -191,7 +211,6 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
                 return (
                     <PositionStep
                         form={form}
-                        filteredPositions={getFilteredPositions()}
                     />
                 );
             case 2:
@@ -200,13 +219,35 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
                 return (
                     <ReviewStep
                         form={form}
-                        mockCompanies={companies}
-                        mockPositions={mockPositions}
+
+
                     />
                 );
             default:
                 return null;
         }
+    };
+
+    // Add debug display in the form
+    const renderDebugInfo = () => {
+        if (process.env.NODE_ENV === 'development') {
+            return (
+                <div className="mt-4 p-4 border border-yellow-500 rounded bg-yellow-500/10 text-xs">
+                    <h3 className="font-bold mb-2">Form Debug Info:</h3>
+                    <pre className="whitespace-pre-wrap">
+                        {JSON.stringify({
+                            isValid: isCurrentStepValid,
+                            isDirty: formState.isDirty,
+                            currentStep,
+                            errors: Object.keys(errors).length > 0 ? errors : 'No errors',
+                            dirtyFields: Object.keys(dirtyFields).length > 0 ? dirtyFields : 'No dirty fields',
+                            values: form.getValues(),
+                        }, null, 2)}
+                    </pre>
+                </div>
+            );
+        }
+        return null;
     };
 
     return (
@@ -219,7 +260,7 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
                             {steps.map((step, index) => (
                                 <div
                                     key={step.id}
-                                    className={`text-xs font-medium ${index === currentStep
+                                    className={`text-sm font-bold ${index === currentStep
                                         ? "text-primary"
                                         : index < currentStep
                                             ? "text-[#cccccc]"
@@ -242,6 +283,7 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
                             className="space-y-8"
                         >
                             {renderStep()}
+                            {renderDebugInfo()}
 
                             {/* Navigation buttons */}
                             <div className="flex justify-between pt-4">
@@ -272,7 +314,7 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
                                         <Button
                                             type="button"
                                             onClick={handleNext}
-                                            disabled={!isValid}
+                                            disabled={!isCurrentStepValid}
                                             className="bg-primary hover:bg-primary-hover"
                                         >
                                             Next

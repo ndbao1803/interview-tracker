@@ -13,7 +13,7 @@ interface Company {
         name: string;
     };
     location: string;
-    logo: string;
+    logo_url: string;
     applicationsCount: number;
     openPositions: number;
     averageResponseTime: string;
@@ -33,7 +33,7 @@ export function CompanyCard({ company, viewMode }: CompanyCardProps) {
                     <div className="flex items-center gap-4">
                         <div className="flex-shrink-0">
                             <img
-                                src={company.logo || "/placeholder.svg"}
+                                src={company.logo_url || "/placeholder.svg"}
                                 alt={`${company.name} logo`}
                                 className="h-10 w-10 rounded-md bg-[#1e1e1e] p-1"
                             />
@@ -120,7 +120,7 @@ export function CompanyCard({ company, viewMode }: CompanyCardProps) {
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                         <img
-                            src={company.logo || "/placeholder.svg"}
+                            src={company.logo_url || "/placeholder.svg"}
                             alt={`${company.name} logo`}
                             className="h-10 w-10 rounded-md bg-[#1e1e1e] p-1"
                         />

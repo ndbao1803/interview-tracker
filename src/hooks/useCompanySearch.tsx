@@ -12,6 +12,7 @@ interface Company {
         name: string;
         created_at?: string;
         updated_at?: string;
+        logo_url?: string;
     } | null;
 }
 
@@ -46,9 +47,9 @@ export function useCompanySearch() {
     }, [searchQuery]);
 
     // Group companies by industry
-    const groupedCompanies = companies.reduce((acc, company) => {
+    const groupedCompanies = companies.reduce((acc: any, company: Company) => {
         // Handle cases where industry might be null, undefined, or missing the name property
-        const industry = company.industry?.name || "Other";
+        const industry: string = company.industry?.name || "Other";
         if (!acc[industry]) {
             acc[industry] = [];
         }
@@ -80,19 +81,29 @@ export function useCompanySearch() {
                     currentPage = page + 1;
                     setPage(currentPage);
                 }
-                console.log(`isNewSearch: ${isNewSearch}, page: ${currentPage}`);
+                console.log(
+                    `isNewSearch: ${isNewSearch}, page: ${currentPage}`
+                );
                 setLoading(true);
                 setError(null);
 
                 const currentSearchQuery = searchQueryRef.current;
-                const response = await getSearchFilterPaginationCompanies(currentSearchQuery, selectedIndustries, currentPage, "");
+                const response = await getSearchFilterPaginationCompanies(
+                    currentSearchQuery,
+                    selectedIndustries,
+                    currentPage,
+                    ""
+                );
 
-                setCompanies((prev) =>
-                    isNewSearch ? response.companies : [...prev, ...response.companies]
+                setCompanies((prev: any) =>
+                    isNewSearch
+                        ? response.companies
+                        : [...prev, ...response.companies]
                 );
                 setIndustries(response.industries);
-                setHasMore(response.pageInfo.currentPage < response.pageInfo.totalPages);
-
+                setHasMore(
+                    response.pageInfo.currentPage < response.pageInfo.totalPages
+                );
             } catch (err) {
                 setError(
                     err instanceof Error
@@ -133,8 +144,6 @@ export function useCompanySearch() {
         // Reset page to 1 and trigger new search with updated filters
         setPage(1);
         setCompanies([]);
-
-
     };
 
     // Clean up the timeout on unmount

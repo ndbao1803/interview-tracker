@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { put } from "@vercel/blob";
 import { nanoid } from "nanoid";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
     try {
@@ -24,14 +26,26 @@ export async function POST(request: NextRequest) {
 
         // Generate a unique filename
         const filename = `${nanoid()}-${file.name}`;
+        
+        // Convert file to base64 for storage
+        const buffer = await file.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString('base64');
+        const dataUrl = `data:${file.type};base64,${base64}`;
 
-        // Upload to blob storage
-        const blob = await put(filename, file, {
-            access: 'public',
-        });
+        // Store in database
+        const companyId = formData.get("companyId") as string;
+        if (companyId) {
+            await prisma.companies.update({
+                where: { id: companyId },
+                data: {
+                    logo_url: dataUrl,
+                    logo_key: filename
+                }
+            });
+        }
 
         return NextResponse.json({
-            url: blob.url,
+            url: dataUrl,
             key: filename
         });
     } catch (error: any) {

@@ -114,33 +114,66 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { companyId } = body;
+        
+        // If companyId is provided, it's a company selection request
+        if (body.companyId) {
+            const company = await prisma.companies.findUnique({
+                where: { id: body.companyId },
+                include: {
+                    industry: true,
+                },
+            });
 
-        if (!companyId) {
+            if (!company) {
+                return NextResponse.json(
+                    { error: "Company not found" },
+                    { status: 404 }
+                );
+            }
+
+            return NextResponse.json({ company });
+        }
+        
+        // Otherwise, it's a company creation request
+        const { name, industry, location, website, logo_url } = body;
+        
+        if (!name) {
             return NextResponse.json(
-                { error: "Company ID is required" },
+                { error: "Company name is required" },
                 { status: 400 }
             );
         }
 
-        // Fetch the selected company
-        const company = await prisma.companies.findUnique({
-            where: { id: companyId },
+        // First, find or create the industry
+        let industryRecord = await prisma.industry.findFirst({
+            where: { name: industry },
+        });
+
+        if (!industryRecord) {
+            industryRecord = await prisma.industry.create({
+                data: { name: industry },
+            });
+        }
+
+        // Create the company with the industry connection
+        const company = await prisma.companies.create({
+            data: {
+                name,
+                industry: {
+                    connect: { id: industryRecord.id },
+                },
+                location,
+                website,
+                logo_url,
+            },
             include: {
                 industry: true,
             },
         });
 
-        if (!company) {
-            return NextResponse.json(
-                { error: "Company not found" },
-                { status: 404 }
-            );
-        }
-
         return NextResponse.json({ company });
     } catch (error: any) {
-        console.error("Error selecting company:", error);
+        console.error("Error handling company request:", error);
         return NextResponse.json(
             { error: error.message || "Unknown error" },
             { status: 500 }

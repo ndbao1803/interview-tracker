@@ -102,24 +102,9 @@ export function CompanySearch({
         }
     }, [selectedIndustries, fetchCompanies, isOpen]);
 
-    // Debug function to log company data
-    const debugCompanies = () => {
-        console.log("All companies:", companies);
-        console.log("Grouped companies:", groupedCompanies);
-        console.log("Sorted industries:", sortedIndustries);
-        console.log("Companies length:", companies.length);
-        console.log("GroupedCompanies keys:", Object.keys(groupedCompanies));
-        console.log("GroupedCompanies length:", Object.keys(groupedCompanies).length);
 
-
-    };
 
     // Call debug function when companies change
-    useEffect(() => {
-        if (companies.length > 0) {
-            debugCompanies();
-        }
-    }, [companies]);
 
     return (
         <Command className="bg-transparent" shouldFilter={false}>

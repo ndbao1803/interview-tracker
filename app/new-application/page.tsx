@@ -3,7 +3,6 @@ import SharedLayout from "@/components/SharedLayout";
 import { getAllCompanies } from "@/src/prisma/companyService";
 
 export default async function AddApplicationPage() {
-    const companies = await getAllCompanies();
 
     return (
         <SharedLayout>
@@ -13,7 +12,7 @@ export default async function AddApplicationPage() {
                     Track a new job application by filling out the form below
                 </p>
             </div>
-            <InterviewForm companies={companies} />
+            <InterviewForm />
         </SharedLayout>
     );
 }

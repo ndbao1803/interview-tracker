@@ -12,18 +12,8 @@ export const formSchema = z.object({
   newCompanyName: z.string().optional(),
   newCompanyIndustry: z.string().optional(),
   newCompanyLocation: z.string().optional(),
-  newCompanyWebsite: z.string().url().optional().or(z.literal("")),
-  newCompanyLogo: z.custom<File>()
-    .refine((file) => !file || file instanceof File, "Must be a valid file")
-    .refine(
-      (file) => !file || file.size <= MAX_FILE_SIZE,
-      "File size must be less than 5MB"
-    )
-    .refine(
-      (file) => !file || ACCEPTED_IMAGE_TYPES.includes(file.type),
-      "Only .jpg, .jpeg, .png and .webp formats are supported"
-    )
-    .optional(),
+  newCompanyWebsite: z.string().url().optional(),
+  newCompanyLogo: z.any().optional(),
 
   // Position section
   positionType: z.enum(["existing", "new"]),
@@ -34,10 +24,19 @@ export const formSchema = z.object({
   // Application section
   totalRounds: z.coerce.number().min(1, "At least one round is required"),
   applicationNote: z.string().optional(),
+  source_channel: z.string().optional(),
+  applied_date: z.date().optional(),
+  tags: z.array(z.string()).optional(),
 
-  // Interview round section
-  interviewStatus: z.string().default("Scheduled"),
+  // Interview section
+  interviewType: z.enum(["existing", "new"]),
+  existingInterviewId: z.string().optional(),
+  newInterviewTitle: z.string().optional(),
+  newInterviewDescription: z.string().optional(),
+  interviewStatus: z.enum(["Scheduled", "Completed", "Cancelled"]).default("Scheduled"),
   interviewFeedback: z.string().optional(),
   interviewNote: z.string().optional(),
 })
+
+export type FormValues = z.infer<typeof formSchema>;
 
