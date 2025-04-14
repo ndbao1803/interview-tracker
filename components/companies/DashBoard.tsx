@@ -45,6 +45,7 @@ export default function CompaniesDashboardComponent() {
                 <SearchBar
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
+                    setCurrentPage={setCurrentPage}
                 />
                 <IndustryFilter
                     industries={industries}

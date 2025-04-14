@@ -9,51 +9,19 @@ import { ChevronLeft, ChevronRight, Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
-
 import { Toaster } from "@/components/ui/toaster";
-import { Progress } from "@/components/ui/progress";
+import { Form } from "@/components/ui/form";
+
+import { ProgressTracker, type Step } from "./progress-tracker";
+import {
+    SubmissionProgressDialog,
+    type SubmissionStep,
+} from "./submission-progress";
 import { CompanyStep } from "./steps/company-step";
 import { PositionStep } from "./steps/position-step";
 import { ApplicationStep } from "./steps/application-step";
 import { ReviewStep } from "./steps/review-step";
 import { formSchema } from "./schema";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import { Form, FormItem, FormLabel } from "@/components/ui/form";
-
-const SubmissionProgressDialog = ({
-    isOpen,
-    setIsOpen,
-    progress,
-    isSubmitting,
-}: {
-    isOpen: boolean;
-    setIsOpen: (open: boolean) => void;
-    progress: string[];
-    isSubmitting: boolean;
-}) => {
-    return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>Submission Progress</DialogTitle>
-                </DialogHeader>
-                <div className="py-2">
-                    {progress.map((message, index) => (
-                        <p key={index}>{message}</p>
-                    ))}
-                    {isSubmitting && (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                </div>
-            </DialogContent>
-        </Dialog>
-    );
-};
 
 async function createCompany(data: {
     name: string;
@@ -68,7 +36,7 @@ async function createCompany(data: {
         body: JSON.stringify(data),
     });
     const result = await response.json();
-    return result.id;
+    return result?.company?.id;
 }
 
 async function createPosition(data: {
@@ -82,7 +50,7 @@ async function createPosition(data: {
         body: JSON.stringify(data),
     });
     const result = await response.json();
-    return result.id;
+    return result?.position?.id;
 }
 
 async function createApplication(data: {
@@ -92,25 +60,32 @@ async function createApplication(data: {
     note?: string;
 }) {
     await fetch("/api/applications", {
-        // Assuming you have an /api/applications endpoint
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
     });
 }
 
-const steps = [
-    { id: "company", label: "Company" },
-    { id: "position", label: "Position" },
-    { id: "application", label: "Application" },
-    { id: "review", label: "Review" },
+// Define initial steps with status
+const formSteps: Step[] = [
+    { id: "company", label: "Company", status: "pending" },
+    { id: "position", label: "Position", status: "pending" },
+    { id: "application", label: "Application", status: "pending" },
+    { id: "review", label: "Review", status: "pending" },
 ];
 
 export default function InterviewForm({ companies }: { companies: any[] }) {
     const [currentStep, setCurrentStep] = useState(0);
-    const [isSubmitting, setIsSubmitting] = useState<any>(false);
+    const [formStepsState, setFormStepsState] = useState<Step[]>(
+        formSteps.map((step, index) =>
+            index === 0 ? { ...step, status: "in-progress" } : step
+        )
+    );
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [submissionProgress, setSubmissionProgress] = useState<string[]>([]);
+    const [submissionSteps, setSubmissionSteps] = useState<SubmissionStep[]>(
+        []
+    );
     const [isPending, startTransition] = useTransition();
 
     // Initialize form
@@ -134,10 +109,6 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
         switch (currentStep) {
             case 0: // Company step
                 if (currentValues.companyType === "existing") {
-                    console.log(
-                        "existingCompanyId",
-                        currentValues.existingCompanyId
-                    );
                     return !!currentValues.existingCompanyId;
                 } else {
                     return !!(
@@ -162,7 +133,7 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
     };
 
     // Calculate if the current step is valid and dirty
-    const isCurrentStepValid = isStepValid() && form.formState.isDirty;
+    const isCurrentStepValid = isStepValid();
 
     // Debug form state
     useEffect(() => {
@@ -181,9 +152,6 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
         errors,
         currentStep,
     ]);
-
-    // Calculate progress percentage
-    const progress = ((currentStep + 1) / steps.length) * 100;
 
     // Get fields to validate for the current step
     const getFieldsToValidate = (
@@ -205,14 +173,6 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
                     : ["positionType", "newPositionTitle"];
             case 2: // Application step
                 return ["totalRounds", "applicationNote"];
-            case 3: // Interview step
-                return form.watch("interviewType") === "existing"
-                    ? [
-                          "interviewType",
-                          "existingInterviewId",
-                          "interviewStatus",
-                      ]
-                    : ["interviewType", "newInterviewTitle", "interviewStatus"];
             default:
                 return [];
         }
@@ -231,9 +191,7 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
                 field === "applicationNote" ||
                 field === "newCompanyWebsite" ||
                 field === "newCompanyLogo" ||
-                field === "newPositionDescription" ||
-                field === "interviewFeedback" ||
-                field === "interviewNote"
+                field === "newPositionDescription"
             ) {
                 return true;
             }
@@ -241,7 +199,18 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
         });
 
         if (isStepValid) {
-            setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
+            // Update the current step status to completed and next step to in-progress
+            setFormStepsState((prev) =>
+                prev.map((step, idx) =>
+                    idx === currentStep
+                        ? { ...step, status: "completed" }
+                        : idx === currentStep + 1
+                        ? { ...step, status: "in-progress" }
+                        : step
+                )
+            );
+
+            setCurrentStep((prev) => Math.min(prev + 1, formSteps.length - 1));
         } else {
             // Trigger validation to show error messages
             await form.trigger(fieldsToValidate);
@@ -250,6 +219,17 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
 
     // Handle previous step
     const handlePrevious = () => {
+        // Update steps status - current to pending, previous to in-progress
+        setFormStepsState((prev) =>
+            prev.map((step, idx) =>
+                idx === currentStep
+                    ? { ...step, status: "pending" }
+                    : idx === currentStep - 1
+                    ? { ...step, status: "in-progress" }
+                    : step
+            )
+        );
+
         setCurrentStep((prev) => Math.max(prev - 1, 0));
     };
 
@@ -257,7 +237,18 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
     const handleSkip = () => {
         // Only allow skipping certain steps
         if (canSkipStep(currentStep)) {
-            setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
+            // Update step statuses
+            setFormStepsState((prev) =>
+                prev.map((step, idx) =>
+                    idx === currentStep
+                        ? { ...step, status: "completed" }
+                        : idx === currentStep + 1
+                        ? { ...step, status: "in-progress" }
+                        : step
+                )
+            );
+
+            setCurrentStep((prev) => Math.min(prev + 1, formSteps.length - 1));
         }
     };
 
@@ -301,22 +292,72 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
     const onSubmit = async (data: z.infer<typeof formSchema>) => {
         setIsSubmitting(true);
         setIsDialogOpen(true);
-        setSubmissionProgress(["Starting submission..."]);
+
+        // Initialize submission steps based on form data
+        const initialSteps: SubmissionStep[] = [];
+
+        // Add company step
+        initialSteps.push({
+            id: "company",
+            message:
+                data.companyType === "new"
+                    ? "Creating new company..."
+                    : "Using existing company...",
+            status: "pending",
+        });
+
+        // Add position step
+        initialSteps.push({
+            id: "position",
+            message:
+                data.positionType === "new"
+                    ? "Creating new position..."
+                    : "Using existing position...",
+            status: "pending",
+        });
+
+        // Add application step
+        initialSteps.push({
+            id: "application",
+            message: "Creating application...",
+            status: "pending",
+        });
+
+        // Add completion step
+        initialSteps.push({
+            id: "complete",
+            message: "Finalizing submission...",
+            status: "pending",
+        });
+
+        setSubmissionSteps(initialSteps);
 
         startTransition(async () => {
             try {
                 let companyId: string | undefined;
+
+                // Update company step to in-progress
+                setSubmissionSteps((prev) =>
+                    prev.map((step) =>
+                        step.id === "company"
+                            ? { ...step, status: "in-progress" }
+                            : step
+                    )
+                );
+                let uploadedLogoUrl: string | undefined;
+
+                if (data.newCompanyLogo instanceof File) {
+                    uploadedLogoUrl = await uploadLogo(data.newCompanyLogo);
+                } else if (typeof data.newCompanyLogo === "string") {
+                    uploadedLogoUrl = data.newCompanyLogo; // If it's already a URL, keep it
+                }
                 if (data.companyType === "new") {
-                    setSubmissionProgress((prev) => [
-                        ...prev,
-                        "Creating new company...",
-                    ]);
                     const companyData = {
                         name: data.newCompanyName!,
                         industry: data.newCompanyIndustry!,
                         location: data.newCompanyLocation!,
                         website: data.newCompanyWebsite,
-                        logo: data.newCompanyLogo,
+                        logo_url: uploadedLogoUrl,
                     };
 
                     const newCompanyId = await createCompany(companyData);
@@ -324,24 +365,47 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
                         throw new Error("Failed to create company");
                     }
                     companyId = newCompanyId;
-                    setSubmissionProgress((prev) => [
-                        ...prev,
-                        "Company created successfully.",
-                    ]);
+
+                    // Update company step to completed
+                    setSubmissionSteps((prev) =>
+                        prev.map((step) =>
+                            step.id === "company"
+                                ? {
+                                      ...step,
+                                      message: "Company created successfully.",
+                                      status: "completed",
+                                  }
+                                : step
+                        )
+                    );
                 } else {
                     companyId = data.existingCompanyId;
-                    setSubmissionProgress((prev) => [
-                        ...prev,
-                        "Using existing company.",
-                    ]);
+
+                    // Update company step to completed
+                    setSubmissionSteps((prev) =>
+                        prev.map((step) =>
+                            step.id === "company"
+                                ? {
+                                      ...step,
+                                      message: "Using existing company.",
+                                      status: "completed",
+                                  }
+                                : step
+                        )
+                    );
                 }
+
+                // Update position step to in-progress
+                setSubmissionSteps((prev) =>
+                    prev.map((step) =>
+                        step.id === "position"
+                            ? { ...step, status: "in-progress" }
+                            : step
+                    )
+                );
 
                 let positionId: string | undefined;
                 if (data.positionType === "new") {
-                    setSubmissionProgress((prev) => [
-                        ...prev,
-                        "Creating new position...",
-                    ]);
                     const positionData = {
                         title: data.newPositionTitle!,
                         description: data.newPositionDescription,
@@ -352,22 +416,45 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
                         throw new Error("Failed to create position");
                     }
                     positionId = newPositionId;
-                    setSubmissionProgress((prev) => [
-                        ...prev,
-                        "Position created successfully.",
-                    ]);
+
+                    // Update position step to completed
+                    setSubmissionSteps((prev) =>
+                        prev.map((step) =>
+                            step.id === "position"
+                                ? {
+                                      ...step,
+                                      message: "Position created successfully.",
+                                      status: "completed",
+                                  }
+                                : step
+                        )
+                    );
                 } else {
                     positionId = data.existingPositionId;
-                    setSubmissionProgress((prev) => [
-                        ...prev,
-                        "Using existing position.",
-                    ]);
+
+                    // Update position step to completed
+                    setSubmissionSteps((prev) =>
+                        prev.map((step) =>
+                            step.id === "position"
+                                ? {
+                                      ...step,
+                                      message: "Using existing position.",
+                                      status: "completed",
+                                  }
+                                : step
+                        )
+                    );
                 }
 
-                setSubmissionProgress((prev) => [
-                    ...prev,
-                    "Creating application...",
-                ]);
+                // Update application step to in-progress
+                setSubmissionSteps((prev) =>
+                    prev.map((step) =>
+                        step.id === "application"
+                            ? { ...step, status: "in-progress" }
+                            : step
+                    )
+                );
+
                 const applicationData = {
                     companyId: companyId!,
                     positionId: positionId!,
@@ -376,31 +463,97 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
                 };
                 await createApplication(applicationData);
 
-                setSubmissionProgress((prev) => [
-                    ...prev,
-                    "Application created successfully.",
-                ]);
-                setSubmissionProgress((prev) => [
-                    ...prev,
-                    "Submission complete!",
-                ]);
+                // Update application step to completed
+                setSubmissionSteps((prev) =>
+                    prev.map((step) =>
+                        step.id === "application"
+                            ? {
+                                  ...step,
+                                  message: "Application created successfully.",
+                                  status: "completed",
+                              }
+                            : step
+                    )
+                );
+
+                // Update complete step to in-progress then completed
+                setSubmissionSteps((prev) =>
+                    prev.map((step) =>
+                        step.id === "complete"
+                            ? { ...step, status: "in-progress" }
+                            : step
+                    )
+                );
+
+                // Add a small delay for visual effect
+                await new Promise((resolve) => setTimeout(resolve, 800));
+
+                setSubmissionSteps((prev) =>
+                    prev.map((step) =>
+                        step.id === "complete"
+                            ? {
+                                  ...step,
+                                  message: "Submission complete!",
+                                  status: "completed",
+                              }
+                            : step
+                    )
+                );
+
                 toast({
                     title: "Success",
                     description: "Application submitted successfully.",
                 });
-                form.reset();
+
+                // Reset form after successful submission (with a delay)
+                setTimeout(() => {
+                    form.reset();
+                    setIsDialogOpen(false);
+
+                    // Reset steps status
+                    setFormStepsState(
+                        formSteps.map((step, index) =>
+                            index === 0
+                                ? { ...step, status: "in-progress" }
+                                : { ...step, status: "pending" }
+                        )
+                    );
+                }, 2000);
             } catch (error: any) {
                 console.error("Submission error:", error);
+
+                // Update current step to error
+                const currentStepId = [
+                    "company",
+                    "position",
+                    "application",
+                    "complete",
+                ][
+                    submissionSteps.findIndex(
+                        (step) => step.status === "in-progress"
+                    )
+                ];
+
+                setSubmissionSteps((prev) =>
+                    prev.map((step) =>
+                        step.id === currentStepId
+                            ? {
+                                  ...step,
+                                  message: `Error: ${
+                                      error.message || "Failed to process"
+                                  }`,
+                                  status: "error",
+                              }
+                            : step
+                    )
+                );
+
                 toast({
                     title: "Error",
                     description:
                         error.message || "Failed to submit application.",
                     variant: "destructive",
                 });
-                setSubmissionProgress((prev) => [
-                    ...prev,
-                    `Error: ${error.message || "Submission failed."}`,
-                ]);
             } finally {
                 setIsSubmitting(false);
             }
@@ -411,7 +564,7 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
     const renderStep = () => {
         switch (currentStep) {
             case 0:
-                return <CompanyStep form={form} />;
+                return <CompanyStep />;
             case 1:
                 return <PositionStep form={form} />;
             case 2:
@@ -423,9 +576,8 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
         }
     };
 
-    // Add debug display in the form
-    const renderDebugInfo = () => {
-        return null;
+    const handleSubmit = () => {
+        form.handleSubmit(onSubmit)();
     };
 
     return (
@@ -433,41 +585,30 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
             <SubmissionProgressDialog
                 isOpen={isDialogOpen}
                 setIsOpen={setIsDialogOpen}
-                progress={submissionProgress}
+                steps={submissionSteps}
                 isSubmitting={isSubmitting}
+                title="Transaction Progress"
             />
+
             <Card className="bg-background border-foreground/10 text-[#cccccc]">
                 <CardContent className="pt-6">
                     <div className="mb-8">
-                        <div className="flex justify-between mb-2">
-                            {steps.map((step, index) => (
-                                <div
-                                    key={step.id}
-                                    className={`text-sm font-bold ${
-                                        index === currentStep
-                                            ? "text-primary"
-                                            : index < currentStep
-                                            ? "text-[#cccccc]"
-                                            : "text-[#8a8a8a]"
-                                    }`}
-                                >
-                                    {step.label}
-                                </div>
-                            ))}
-                        </div>
-                        <Progress
-                            value={progress}
-                            className="h-2 bg-[#3c3c3c] [&>div]:bg-primary"
+                        <ProgressTracker
+                            steps={formStepsState}
+                            currentStepIndex={currentStep}
+                            className="[&_.text-primary]:text-primary [&_.bg-primary]:bg-primary [&_.border-primary]:border-primary"
                         />
                     </div>
 
                     <Form {...form}>
                         <form
-                            onSubmit={form.handleSubmit(onSubmit)}
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                form.handleSubmit(onSubmit);
+                            }}
                             className="space-y-8"
                         >
                             {renderStep()}
-                            {renderDebugInfo()}
 
                             <div className="flex justify-between pt-4">
                                 <Button
@@ -493,7 +634,7 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
                                         </Button>
                                     )}
 
-                                    {currentStep < steps.length - 1 ? (
+                                    {currentStep < formSteps.length - 1 ? (
                                         <Button
                                             type="button"
                                             onClick={handleNext}
@@ -505,9 +646,9 @@ export default function InterviewForm({ companies }: { companies: any[] }) {
                                         </Button>
                                     ) : (
                                         <Button
-                                            type="submit"
+                                            // type="submit"
                                             disabled={isSubmitting}
-                                            onClick={onSubmit}
+                                            onClick={handleSubmit}
                                             className="bg-[#0e639c] hover:bg-[#1177bb]"
                                         >
                                             {isSubmitting ? (

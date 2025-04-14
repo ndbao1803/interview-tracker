@@ -23,7 +23,14 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { useFormContext } from "react-hook-form";
 import { FormValues } from "../schema";
 import { useCompanySearch } from "@/src/hooks/useCompanySearch";
@@ -38,7 +45,7 @@ export function CompanyStep() {
         id: string;
         name: string;
         industry: string;
-        logo_url?: string;
+        logo_url?: File;
     } | null>(null);
 
     const {
@@ -63,33 +70,41 @@ export function CompanyStep() {
         }
     }, [industries.length, fetchCompanies]);
 
-    const handleCompanySelect = useCallback((company: { id: string; name: string; industry: string; logo?: string }) => {
-        setSelectedCompany(company);
+    const handleCompanySelect = useCallback(
+        (company: {
+            id: string;
+            name: string;
+            industry: string;
+            logo_url?: File;
+        }) => {
+            setSelectedCompany(company);
 
-        form.setValue("existingCompanyId", company.id, {
-            shouldValidate: true,
-            shouldDirty: true,
-            shouldTouch: true
-        });
-    }, [form]);
+            form.setValue("existingCompanyId", company.id, {
+                shouldValidate: true,
+                shouldDirty: true,
+                shouldTouch: true,
+            });
+        },
+        [form]
+    );
 
     // Add a wrapper function to adapt the CompanySearch's onSelectCompany callback
-    const handleCompanySelectWrapper = useCallback((companyId: string) => {
-        // Find the company in the companies array
-        const company = companies.find(c => c.id === companyId);
-        if (company) {
-            handleCompanySelect({
-                id: company.id,
-                name: company.name,
-                industry: company.industry?.name || '',
-                logo: company.logo_url
-            });
-            setOpen(false);
-        }
-
-    }, [companies, handleCompanySelect]);
-
-
+    const handleCompanySelectWrapper = useCallback(
+        (companyId: string) => {
+            // Find the company in the companies array
+            const company = companies.find((c) => c.id === companyId);
+            if (company) {
+                handleCompanySelect({
+                    id: company.id,
+                    name: company.name,
+                    industry: company.industry?.name || "",
+                    logo_url: company.logo_url,
+                });
+                setOpen(false);
+            }
+        },
+        [companies, handleCompanySelect]
+    );
 
     const handleConfirm = async () => {
         setIsSubmitting(true);
@@ -179,10 +194,10 @@ export function CompanyStep() {
                                             >
                                                 {field.value
                                                     ? companies.find(
-                                                        (company) =>
-                                                            company.id ===
-                                                            field.value
-                                                    )?.name || "Loading..."
+                                                          (company) =>
+                                                              company.id ===
+                                                              field.value
+                                                      )?.name || "Loading..."
                                                     : "Search for a company..."}
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
@@ -254,14 +269,15 @@ export function CompanyStep() {
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent className="border-[#3c3c3c] bg-[#252526] text-[#cccccc]">
-                                            {industries.length > 0 && industries.map((industry) => (
-                                                <SelectItem
-                                                    key={industry}
-                                                    value={industry}
-                                                >
-                                                    {industry}
-                                                </SelectItem>
-                                            ))}
+                                            {industries.length > 0 &&
+                                                industries.map((industry) => (
+                                                    <SelectItem
+                                                        key={industry}
+                                                        value={industry}
+                                                    >
+                                                        {industry}
+                                                    </SelectItem>
+                                                ))}
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -306,26 +322,40 @@ export function CompanyStep() {
                         <FormField
                             control={form.control}
                             name="newCompanyLogo"
-                            render={({ field: { value, onChange, ...field } }) => (
+                            render={({
+                                field: { value, onChange, ...field },
+                            }) => (
                                 <FormItem>
-                                    <FormLabel>Company Logo (Optional)</FormLabel>
+                                    <FormLabel>
+                                        Company Logo (Optional)
+                                    </FormLabel>
                                     <FormControl>
                                         <div className="flex items-center gap-2">
                                             <Input
                                                 type="file"
                                                 accept="image/*"
                                                 onChange={async (e) => {
-                                                    const file = e.target.files?.[0];
+                                                    const file =
+                                                        e.target.files?.[0];
                                                     if (file) {
                                                         // Create a preview URL
-                                                        const previewUrl = URL.createObjectURL(file);
+                                                        const previewUrl =
+                                                            URL.createObjectURL(
+                                                                file
+                                                            );
 
                                                         // Store the file for later upload
                                                         onChange(file);
-                                                        form.setValue("newCompanyLogo", previewUrl);
+                                                        form.setValue(
+                                                            "newCompanyLogo",
+                                                            file
+                                                        );
 
                                                         // Clean up the preview URL when component unmounts
-                                                        return () => URL.revokeObjectURL(previewUrl);
+                                                        return () =>
+                                                            URL.revokeObjectURL(
+                                                                previewUrl
+                                                            );
                                                     }
                                                 }}
                                                 className="border-[#3c3c3c] bg-[#1e1e1e] focus-visible:ring-primary file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/80"
@@ -334,7 +364,14 @@ export function CompanyStep() {
                                             {value && (
                                                 <div className="relative w-10 h-10 rounded-md overflow-hidden">
                                                     <img
-                                                        src={typeof value === 'string' ? value : URL.createObjectURL(value)}
+                                                        src={
+                                                            typeof value ===
+                                                            "string"
+                                                                ? value
+                                                                : URL.createObjectURL(
+                                                                      value
+                                                                  )
+                                                        }
                                                         alt="Logo preview"
                                                         className="object-cover w-full h-full"
                                                     />
@@ -355,48 +392,72 @@ export function CompanyStep() {
                     <DialogHeader>
                         <DialogTitle>Review Company Information</DialogTitle>
                         <DialogDescription>
-                            Please review the company information before proceeding.
+                            Please review the company information before
+                            proceeding.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
-                        {form.watch("companyType") === "existing" && selectedCompany ? (
+                        {form.watch("companyType") === "existing" &&
+                        selectedCompany ? (
                             <div className="space-y-2">
                                 <div className="flex items-center gap-4">
                                     {selectedCompany.logo_url && (
                                         <img
-                                            src={selectedCompany.logo_url}
+                                            src={URL.createObjectURL(
+                                                selectedCompany.logo_url
+                                            )}
                                             alt="Company logo"
                                             className="h-12 w-12 object-contain"
                                         />
                                     )}
                                     <div>
-                                        <h3 className="font-medium">{selectedCompany.name}</h3>
-                                        <p className="text-sm text-gray-500">{selectedCompany.industry}</p>
+                                        <h3 className="font-medium">
+                                            {selectedCompany.name}
+                                        </h3>
+                                        <p className="text-sm text-gray-500">
+                                            {selectedCompany.industry}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
                         ) : (
                             <>
                                 <div className="space-y-2">
-                                    <p className="font-semibold">New Company Details:</p>
+                                    <p className="font-semibold">
+                                        New Company Details:
+                                    </p>
                                     <div className="flex items-center gap-3">
                                         {form.watch("newCompanyLogo") && (
                                             <img
                                                 src={
-                                                    form.watch("newCompanyLogo") instanceof File
-                                                        ? URL.createObjectURL(form.watch("newCompanyLogo"))
-                                                        : typeof form.watch("newCompanyLogo") === "string"
-                                                            ? form.watch("newCompanyLogo")
-                                                            : ""
+                                                    form.watch(
+                                                        "newCompanyLogo"
+                                                    ) instanceof File
+                                                        ? URL.createObjectURL(
+                                                              form.watch(
+                                                                  "newCompanyLogo"
+                                                              )
+                                                          )
+                                                        : typeof form.watch(
+                                                              "newCompanyLogo"
+                                                          ) === "string"
+                                                        ? form.watch(
+                                                              "newCompanyLogo"
+                                                          )
+                                                        : ""
                                                 }
                                                 alt="Company logo"
                                                 className="w-10 h-10 rounded-md object-cover"
                                             />
                                         )}
                                         <div>
-                                            <p className="font-medium">{form.watch("newCompanyName")}</p>
+                                            <p className="font-medium">
+                                                {form.watch("newCompanyName")}
+                                            </p>
                                             <p className="text-sm text-muted-foreground">
-                                                {form.watch("newCompanyIndustry")}
+                                                {form.watch(
+                                                    "newCompanyIndustry"
+                                                )}
                                             </p>
                                         </div>
                                     </div>
@@ -414,7 +475,6 @@ export function CompanyStep() {
                             </>
                         )}
                     </div>
-
                 </DialogContent>
             </Dialog>
         </div>

@@ -14,6 +14,7 @@ interface Company {
         updated_at?: string;
         logo_url?: string;
     } | null;
+    logo_url?: File;
 }
 
 interface CompaniesResponse {
