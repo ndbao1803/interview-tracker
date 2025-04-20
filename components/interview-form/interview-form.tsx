@@ -74,7 +74,7 @@ const formSteps: Step[] = [
     { id: "review", label: "Review", status: "pending" },
 ];
 
-export default function InterviewForm({ companies }: { companies: any[] }) {
+export default function InterviewForm() {
     const [currentStep, setCurrentStep] = useState(0);
     const [formStepsState, setFormStepsState] = useState<Step[]>(
         formSteps.map((step, index) =>

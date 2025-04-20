@@ -3,7 +3,6 @@ import SharedLayout from "@/components/SharedLayout";
 import { getAllCompanies } from "@/src/prisma/companyService";
 
 export default async function AddApplicationPage() {
-
     return (
         <SharedLayout>
             <div className="m-8">

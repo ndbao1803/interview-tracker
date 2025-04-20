@@ -6,37 +6,122 @@ const prisma = new PrismaClient();
 export async function GET(request: NextRequest) {
     try {
         const searchParams = request.nextUrl.searchParams;
-        const positionId = searchParams.get("positionId");
-        const userId = searchParams.get("userId");
+        const page = parseInt(searchParams.get("page") || "1");
+        const pageSize = 10;
+        const skip = (page - 1) * pageSize;
 
-        // Build where clause dynamically
-        const whereClause: any = {};
-        if (positionId) whereClause.position_id = positionId;
-        if (userId) whereClause.user_id = userId;
+        const sortBy = searchParams.get("sortBy") || "applied_date";
+        const sortDirection =
+            searchParams.get("sortDirection") === "asc" ? "asc" : "desc";
 
-        // Fetch applications
-        const applications = await prisma.applications.findMany({
-            where: whereClause,
-            include: {
+        const userId =
+            searchParams.get("userId") || request.headers.get("x-user-id");
+
+        const search = searchParams.get("search") || undefined;
+        const statuses = searchParams
+            .get("statuses")
+            ?.split(",")
+            .filter(Boolean);
+        const tags = searchParams.get("tags")?.split(",").filter(Boolean);
+        const industries = searchParams
+            .get("industries")
+            ?.split(",")
+            .filter(Boolean);
+        const sources = searchParams.get("sources")?.split(",").filter(Boolean);
+        const from = searchParams.get("from") || undefined;
+        const to = searchParams.get("to") || undefined;
+
+        const where: any = {};
+
+        if (userId) where.user_id = userId;
+
+        if (search) {
+            where.OR = [
+                {
+                    positions: {
+                        companies: {
+                            name: { contains: search, mode: "insensitive" },
+                        },
+                    },
+                },
+                {
+                    positions: {
+                        title: { contains: search, mode: "insensitive" },
+                    },
+                },
+                { note: { contains: search, mode: "insensitive" } },
+            ];
+        }
+
+        if (statuses?.length) where.status = { in: statuses };
+        if (sources?.length) where.source_channel = { in: sources };
+
+        if (from || to) {
+            where.applied_date = {};
+            if (from) where.applied_date.gte = new Date(from);
+            if (to) where.applied_date.lte = new Date(to);
+        }
+
+        if (industries?.length) {
+            where.positions = {
+                is: {
+                    companies: {
+                        is: {
+                            industry: {
+                                is: {
+                                    name: { in: industries },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+        }
+
+        if (tags?.length) {
+            where.tags = {
+                some: {
+                    tags: {
+                        id: { in: tags },
+                    },
+                },
+            };
+        }
+
+        // 👇 Dynamic orderBy including nested company name support
+        let orderBy: any = {};
+        if (sortBy === "company") {
+            orderBy = {
                 positions: {
-                    include: {
-                        companies: true,
+                    companies: {
+                        name: sortDirection,
                     },
                 },
-                users: true,
-                tags: {
-                    include: {
-                        tags: true,
-                    },
-                },
-                interview_rounds: true,
-            },
-            orderBy: {
-                applied_date: "desc",
-            },
-        });
+            };
+        } else {
+            orderBy = { [sortBy]: sortDirection };
+        }
 
-        return NextResponse.json({ applications });
+        const [items, total] = await Promise.all([
+            prisma.applications.findMany({
+                where,
+                include: {
+                    positions: { include: { companies: true } },
+                    users: true,
+                    tags: { include: { tags: true } },
+                    interview_rounds: true,
+                },
+                orderBy,
+                skip,
+                take: pageSize,
+            }),
+            prisma.applications.count({ where }),
+        ]);
+
+        return NextResponse.json({
+            items,
+            totalPages: Math.ceil(total / pageSize),
+        });
     } catch (error: any) {
         console.error("Error fetching applications:", error);
         return NextResponse.json(
