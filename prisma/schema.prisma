@@ -13,7 +13,7 @@ model applications {
   user_id          String?            @db.Uuid
   position_id      String?            @db.Uuid
   current_round    Int?               @default(1)
-  rejected_round   Int?
+  rejected_round   Int? 
   note             String?
   source_channel   String?            @db.VarChar(50)
   applied_date     DateTime?          @default(now()) @db.Timestamptz(6)
@@ -27,7 +27,7 @@ model applications {
    notes           application_notes[]
   timeline        application_timeline[]
   status_id       String?             @db.Uuid
-  status          application_status? @relation(fields: [status_id], references: [id])
+  status          application_status? @relation(fields: [status_id], references: [id]) 
   interviews   Interview[]
 }
 

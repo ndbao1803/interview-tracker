@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { Form } from "@/components/ui/form";
-
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { ProgressTracker, type Step } from "./progress-tracker";
 import {
     SubmissionProgressDialog,
@@ -22,6 +22,9 @@ import { PositionStep } from "./steps/position-step";
 import { ApplicationStep } from "./steps/application-step";
 import { ReviewStep } from "./steps/review-step";
 import { formSchema } from "./schema";
+import { SupabaseAuthClient } from "@supabase/supabase-js/dist/module/lib/SupabaseAuthClient";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { redirect } from "next/navigation";
 
 async function createCompany(data: {
     name: string;
@@ -58,6 +61,7 @@ async function createApplication(data: {
     positionId: string;
     totalRounds: number;
     note?: string;
+    userId?: any;
 }) {
     await fetch("/api/applications", {
         method: "POST",
@@ -404,12 +408,24 @@ export default function InterviewForm() {
                     )
                 );
 
+                // Create Supabase client
+                const supabase = createClientComponentClient();
+
+                // Get current user
+                const {
+                    data: { user },
+                } = await supabase.auth.getUser();
+
+                if (!user) {
+                    throw new Error("User not authenticated");
+                }
                 let positionId: string | undefined;
                 if (data.positionType === "new") {
                     const positionData = {
                         title: data.newPositionTitle!,
                         description: data.newPositionDescription,
                         companyId: companyId!,
+                        userId: await supabase.auth.getUser(),
                     };
                     const newPositionId = await createPosition(positionData);
                     if (!newPositionId) {
@@ -460,6 +476,7 @@ export default function InterviewForm() {
                     positionId: positionId!,
                     totalRounds: data.totalRounds!,
                     note: data.applicationNote,
+                    userId: (await supabase.auth.getUser()).data?.user?.id,
                 };
                 await createApplication(applicationData);
 
@@ -509,7 +526,6 @@ export default function InterviewForm() {
                 setTimeout(() => {
                     form.reset();
                     setIsDialogOpen(false);
-
                     // Reset steps status
                     setFormStepsState(
                         formSteps.map((step, index) =>
@@ -518,6 +534,7 @@ export default function InterviewForm() {
                                 : { ...step, status: "pending" }
                         )
                     );
+                    redirect("/applications");
                 }, 2000);
             } catch (error: any) {
                 console.error("Submission error:", error);
@@ -649,7 +666,7 @@ export default function InterviewForm() {
                                             // type="submit"
                                             disabled={isSubmitting}
                                             onClick={handleSubmit}
-                                            className="bg-[#0e639c] hover:bg-[#1177bb]"
+                                            className="bg-primary "
                                         >
                                             {isSubmitting ? (
                                                 <>

@@ -35,6 +35,7 @@ import { useFormContext } from "react-hook-form";
 import { FormValues } from "../schema";
 import { useCompanySearch } from "@/src/hooks/useCompanySearch";
 import { CompanySearch } from "@/components/companies/CompanySearch";
+import { string } from "zod";
 
 export function CompanyStep() {
     const form = useFormContext<FormValues>();
@@ -45,7 +46,7 @@ export function CompanyStep() {
         id: string;
         name: string;
         industry: string;
-        logo_url?: File;
+        logo_url?: File | string;
     } | null>(null);
 
     const {
@@ -403,9 +404,7 @@ export function CompanyStep() {
                                 <div className="flex items-center gap-4">
                                     {selectedCompany.logo_url && (
                                         <img
-                                            src={URL.createObjectURL(
-                                                selectedCompany.logo_url
-                                            )}
+                                            src={selectedCompany.logo_url}
                                             alt="Company logo"
                                             className="h-12 w-12 object-contain"
                                         />

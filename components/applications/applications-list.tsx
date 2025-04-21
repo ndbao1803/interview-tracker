@@ -76,6 +76,7 @@ export function ApplicationsList({
             </div>
         );
     }
+    console.log(applications);
 
     return (
         <div className="space-y-4">
@@ -117,10 +118,10 @@ export function ApplicationsList({
                                     </div>
                                     <Badge
                                         className={`${getStatusColor(
-                                            app.status
+                                            app.status?.name
                                         )} self-start sm:self-center`}
                                     >
-                                        {app.status}
+                                        {app.status?.name}
                                     </Badge>
                                 </div>
 

@@ -39,7 +39,6 @@ import { InterviewRoundsList } from "@/components/applications/interview-rounds-
 import { ApplicationNotes } from "@/components/applications/application-notes";
 import { UpdateStatusDialog } from "@/components/applications/update-status-dialog";
 import SharedLayout from "@/components/SharedLayout";
-// import { AddInterviewRoundDialog } from "@/components/applications/add-interview-round-dialog";
 
 interface ApplicationDetailPageProps {
     params: {
@@ -57,145 +56,44 @@ export default function ApplicationDetailPage({
     const [updateStatusOpen, setUpdateStatusOpen] = useState(false);
     const [addRoundOpen, setAddRoundOpen] = useState(false);
 
-    // Fetch application data
     useEffect(() => {
         const fetchApplication = async () => {
             setLoading(true);
             try {
-                // In a real app, this would be an API call
-                // For now, we'll use mock data
-                setTimeout(() => {
-                    const mockApplication = {
-                        id: params.id,
-                        position: "Senior Frontend Developer",
-                        company: {
-                            id: "c1",
-                            name: "TechCorp",
-                            industry: "Technology",
-                            location: "San Francisco, CA",
-                            website: "https://techcorp.example.com",
-                            logo: "/placeholder.svg?height=80&width=80&text=TC",
-                        },
-                        status: "Interview",
-                        source_channel: "LinkedIn",
-                        applied_date: "2023-12-15",
-                        current_round: 2,
-                        total_rounds: 4,
-                        tags: ["Remote", "Urgent", "Dream Job"],
-                        salary_range: "$120,000 - $150,000",
-                        job_description:
-                            "We are looking for a Senior Frontend Developer to join our team. The ideal candidate will have experience with React, TypeScript, and modern frontend frameworks.",
-                        notes: [
-                            {
-                                id: "n1",
-                                content:
-                                    "Initial application submitted through LinkedIn. Position looks like a great fit for my skills.",
-                                created_at: "2023-12-15T10:30:00Z",
-                            },
-                            {
-                                id: "n2",
-                                content:
-                                    "Received email confirmation. They mentioned they're looking for someone with strong TypeScript experience.",
-                                created_at: "2023-12-16T14:20:00Z",
-                            },
-                            {
-                                id: "n3",
-                                content:
-                                    "Preparing for technical interview. Need to review React hooks, TypeScript generics, and system design concepts.",
-                                created_at: "2023-12-20T09:15:00Z",
-                            },
-                        ],
-                        interview_rounds: [
-                            {
-                                id: "ir1",
-                                round_number: 1,
-                                status: "Completed",
-                                title: "Initial Screening",
-                                date: "2023-12-18T15:00:00Z",
-                                duration: 30,
-                                interviewer: "Sarah Johnson, HR Manager",
-                                feedback:
-                                    "Positive initial screening. They liked my background and experience with React. Moving to technical interview.",
-                                notes: "Questions focused on past experience, team collaboration, and why I'm interested in the company.",
-                            },
-                            {
-                                id: "ir2",
-                                round_number: 2,
-                                status: "Scheduled",
-                                title: "Technical Interview",
-                                date: "2023-12-22T14:00:00Z",
-                                duration: 60,
-                                interviewer:
-                                    "Michael Chen, Senior Engineering Manager",
-                                feedback: "",
-                                notes: "Will include coding challenges and system design questions. Need to prepare for React, TypeScript, and frontend architecture questions.",
-                            },
-                        ],
-                        contacts: [
-                            {
-                                id: "c1",
-                                name: "Sarah Johnson",
-                                role: "HR Manager",
-                                email: "sarah.johnson@techcorp.example.com",
-                                phone: "+1 (555) 123-4567",
-                            },
-                            {
-                                id: "c2",
-                                name: "Michael Chen",
-                                role: "Senior Engineering Manager",
-                                email: "michael.chen@techcorp.example.com",
-                                phone: "+1 (555) 987-6543",
-                            },
-                        ],
-                        timeline_events: [
-                            {
-                                id: "te1",
-                                type: "application",
-                                title: "Application Submitted",
-                                date: "2023-12-15T10:30:00Z",
-                                description:
-                                    "Applied for Senior Frontend Developer position via LinkedIn",
-                            },
-                            {
-                                id: "te2",
-                                type: "note",
-                                title: "Application Confirmation",
-                                date: "2023-12-16T14:20:00Z",
-                                description:
-                                    "Received confirmation email from HR",
-                            },
-                            {
-                                id: "te3",
-                                type: "interview",
-                                title: "Initial Screening",
-                                date: "2023-12-18T15:00:00Z",
-                                description:
-                                    "Completed 30-minute screening call with Sarah Johnson",
-                            },
-                            {
-                                id: "te4",
-                                type: "status_change",
-                                title: "Status Updated",
-                                date: "2023-12-19T09:00:00Z",
-                                description:
-                                    "Application status changed from 'Screening' to 'Interview'",
-                            },
-                            {
-                                id: "te5",
-                                type: "note",
-                                title: "Interview Preparation",
-                                date: "2023-12-20T09:15:00Z",
-                                description:
-                                    "Made notes on technical topics to review before the interview",
-                            },
-                        ],
-                    };
+                const res = await fetch(`/api/applications/${params.id}`);
+                const data = await res.json();
 
-                    setApplication(mockApplication);
-                    setLoading(false);
-                }, 1000);
+                if (!res.ok) throw new Error(data.error || "Failed to fetch");
+
+                const app = data.application;
+
+                const timeline_events = app.timeline.map((event: any) => ({
+                    id: event.id,
+                    type: event.type,
+                    title: event.title,
+                    date: event.date,
+                    description: event.description,
+                    status: event.status?.name || "",
+                }));
+
+                setApplication({
+                    ...app,
+                    company: {
+                        ...app.positions?.companies,
+                        logo: app.positions?.companies?.logo_url,
+                        industry: app.positions?.companies?.industry?.name,
+                    },
+                    position: app.positions?.title,
+                    total_rounds: app.interview_rounds?.length || 0,
+                    tags: app.tags?.map((tag: any) => tag.tags?.name) || [],
+                    status: app.status,
+                    interview_rounds: app.interview_rounds || [],
+                    notes: app.notes || [],
+                    timeline_events,
+                });
             } catch (error) {
                 console.error("Error fetching application:", error);
+            } finally {
                 setLoading(false);
             }
         };
@@ -203,11 +101,10 @@ export default function ApplicationDetailPage({
         fetchApplication();
     }, [params.id]);
 
-    // Handle status update
     const handleStatusUpdate = (newStatus: string) => {
         setApplication((prev: any) => ({
             ...prev,
-            status: newStatus,
+            status: { ...prev.status, name: newStatus },
             timeline_events: [
                 ...prev.timeline_events,
                 {
@@ -215,14 +112,13 @@ export default function ApplicationDetailPage({
                     type: "status_change",
                     title: "Status Updated",
                     date: new Date().toISOString(),
-                    description: `Application status changed from '${prev.status}' to '${newStatus}'`,
+                    description: `Application status changed from '${prev.status.name}' to '${newStatus}'`,
                 },
             ],
         }));
         setUpdateStatusOpen(false);
     };
 
-    // Handle add interview round
     const handleAddInterviewRound = (newRound: any) => {
         const roundNumber = application.interview_rounds.length + 1;
         const newInterviewRound = {
@@ -251,7 +147,6 @@ export default function ApplicationDetailPage({
         setAddRoundOpen(false);
     };
 
-    // Get status color
     const getStatusColor = (status: string) => {
         switch (status) {
             case "Applied":
@@ -271,7 +166,6 @@ export default function ApplicationDetailPage({
         }
     };
 
-    // Format date
     const formatDate = (dateString: string) => {
         return format(new Date(dateString), "PPP");
     };
@@ -306,8 +200,8 @@ export default function ApplicationDetailPage({
         <SharedLayout>
             <main className=" to-muted h-full">
                 <section className="w-full py-6 md:py-12 lg:py-24">
-                    <div className="container px-4 md:px-6 flex h-full">
-                        <div className="p-4">
+                    <div className="container px-4 md:px-6 flex h-full  w-full">
+                        <div className="p-4 w-full">
                             {/* Header */}
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                                 <div className="flex items-center gap-2">
@@ -326,10 +220,10 @@ export default function ApplicationDetailPage({
                                     </h1>
                                     <Badge
                                         className={getStatusColor(
-                                            application.status
+                                            application.status.name
                                         )}
                                     >
-                                        {application.status}
+                                        {application.status.name}
                                     </Badge>
                                 </div>
 
@@ -811,7 +705,7 @@ export default function ApplicationDetailPage({
                             <UpdateStatusDialog
                                 open={updateStatusOpen}
                                 onOpenChange={setUpdateStatusOpen}
-                                currentStatus={application.status}
+                                currentStatus={application.status.name}
                                 onUpdate={handleStatusUpdate}
                             />
 

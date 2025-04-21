@@ -110,6 +110,7 @@ export async function GET(request: NextRequest) {
                     users: true,
                     tags: { include: { tags: true } },
                     interview_rounds: true,
+                    status: true,
                 },
                 orderBy,
                 skip,
@@ -142,14 +143,15 @@ export async function POST(request: NextRequest) {
                 { status: 400 }
             );
         }
-
+        const defaultAppliedStatus = "1833e9c7-fbab-4eb1-9fd0-e886e1a0e042";
         // Create the application
         const application = await prisma.applications.create({
             data: {
                 user_id: userId,
                 position_id: positionId,
                 note,
-                source_channel,
+                status_id: defaultAppliedStatus,
+                source_channel: "",
                 tags:
                     tags && tags.length > 0
                         ? {

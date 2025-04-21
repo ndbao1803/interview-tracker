@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { redirect, useRouter, useSearchParams } from "next/navigation";
 import {
     Search,
     Filter,
@@ -35,8 +35,7 @@ import SharedLayout from "@/components/SharedLayout";
 import { getOwnApplicationsService } from "@/src/services/applications/getOwnApplications";
 
 export default function ApplicationsPage() {
-    const router = useRouter();
-    const searchParams = useSearchParams();
+    const { push } = useRouter();
 
     const [applications, setApplications] = useState([]);
     const [totalPages, setTotalPages] = useState(1);
@@ -45,7 +44,6 @@ export default function ApplicationsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<"list" | "grid" | "table">("list");
     const [filterOpen, setFilterOpen] = useState(false);
-    const [addApplicationOpen, setAddApplicationOpen] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
 
     const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
@@ -232,7 +230,7 @@ export default function ApplicationsPage() {
                                         </Button>
                                         <Button
                                             onClick={() =>
-                                                setAddApplicationOpen(true)
+                                                push("/new-application")
                                             }
                                             className="bg-primary"
                                         >
