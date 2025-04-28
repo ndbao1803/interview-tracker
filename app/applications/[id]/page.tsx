@@ -600,7 +600,7 @@ export default function ApplicationDetailPage({
                                                 </CardDescription>
                                             </CardHeader>
                                             <CardContent>
-                                                <div className="h-[400px]">
+                                                <div className="">
                                                     <ApplicationSankey
                                                         application={
                                                             application
@@ -665,7 +665,7 @@ export default function ApplicationDetailPage({
                                         <CardContent>
                                             <InterviewRoundsList
                                                 rounds={
-                                                    application.interview_rounds
+                                                    application.application_rounds
                                                 }
                                             />
                                         </CardContent>
