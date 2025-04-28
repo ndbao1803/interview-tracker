@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
                     positions: { include: { companies: true } },
                     users: true,
                     tags: { include: { tags: true } },
-                    interview_rounds: true,
+                    application_rounds: true,
                     status: true,
                 },
                 orderBy,
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
                         tags: true,
                     },
                 },
-                interview_rounds: true,
+                application_rounds: true,
             },
         });
 

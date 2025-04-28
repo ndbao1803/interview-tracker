@@ -28,7 +28,7 @@ export async function GET(
                         tags: true,
                     },
                 },
-                interview_rounds: true,
+                application_rounds: true,
                 notes: {
                     orderBy: { created_at: "desc" },
                 },

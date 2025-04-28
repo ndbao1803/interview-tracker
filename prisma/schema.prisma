@@ -23,12 +23,11 @@ model applications {
   tags             applications_tags[]
   positions        positions?         @relation(fields: [position_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users            users?             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  interview_rounds interview_rounds[]
+  application_rounds application_rounds[]
    notes           application_notes[]
   timeline        application_timeline[]
   status_id       String?             @db.Uuid
   status          application_status? @relation(fields: [status_id], references: [id]) 
-  interviews   Interview[]
 }
 
 model tags {
@@ -79,16 +78,19 @@ model industry {
   companies  companies[]
 }
 
-model interview_rounds {
+
+model application_rounds {   
   id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   application_id String?       @db.Uuid
-  round_number   Int
+  seq_no         Int            // ✨ changed from round_number to seq_no
+  title          String         // new field for round title (eg. "Phone Screen", "Offer")
+  isFinish         Boolean         
   feedback       String?
-  status         String        @db.VarChar(50)
   note           String?
-  created_at     DateTime?     @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime?     @default(now()) @db.Timestamptz(6)
-  applications   applications? @relation(fields: [application_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  created_at     DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?      @default(now()) @db.Timestamptz(6)
+
+  applications   applications?  @relation(fields: [application_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model positions {
@@ -113,31 +115,9 @@ model users {
   applications applications[]
 }
 
-model Tag {
-  id          String      @id @default(cuid())
-  name        String      @unique
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  interviews  Interview[] @relation("InterviewToTag")
-}
-
-model Interview {
-  id            String      @id @default(cuid())
-  title         String
-  description   String?
-  status        String
-  feedback      String?
-  notes         String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
 
 
-  // New relation to application
-  applications   applications? @relation(fields: [applicationId], references: [id])
-  applicationId String?        @db.Uuid
 
-  tags          Tag[]       @relation("InterviewToTag")
-}
 model application_notes {
   id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   application_id String        @db.Uuid

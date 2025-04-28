@@ -39,6 +39,7 @@ import { InterviewRoundsList } from "@/components/applications/interview-rounds-
 import { ApplicationNotes } from "@/components/applications/application-notes";
 import { UpdateStatusDialog } from "@/components/applications/update-status-dialog";
 import SharedLayout from "@/components/SharedLayout";
+import { CompleteRoundDialog } from "@/components/applications/complete-round-dialog";
 
 interface ApplicationDetailPageProps {
     params: {
@@ -55,7 +56,7 @@ export default function ApplicationDetailPage({
     const [activeTab, setActiveTab] = useState("overview");
     const [updateStatusOpen, setUpdateStatusOpen] = useState(false);
     const [addRoundOpen, setAddRoundOpen] = useState(false);
-
+    const [completeRoundOpen, setCompleteRoundOpen] = useState(false);
     useEffect(() => {
         const fetchApplication = async () => {
             setLoading(true);
@@ -146,7 +147,76 @@ export default function ApplicationDetailPage({
         }));
         setAddRoundOpen(false);
     };
+    const handleCompleteRound = (data: {
+        isFinish: boolean;
+        feedback: string;
+        note: string;
+        isRejected: boolean;
+    }) => {
+        const currentRoundNumber = application.current_round;
+        const currentRound = application.interview_rounds.find(
+            (round: any) =>
+                round.seq_no === currentRoundNumber ||
+                round.round_number === currentRoundNumber
+        );
 
+        if (!currentRound) return;
+
+        setApplication((prev: any) => {
+            // Update the current round
+            const updatedRounds = prev.interview_rounds.map((round: any) => {
+                if (round.id === currentRound.id) {
+                    return {
+                        ...round,
+                        isFinish: data.isFinish,
+                        status: "Completed",
+                        feedback: data.feedback,
+                        note: data.note,
+                    };
+                }
+                return round;
+            });
+
+            // Determine next application state
+            let nextRound = currentRoundNumber;
+            let rejectedRound = prev.rejected_round;
+            let status = prev.status;
+
+            if (data.isRejected) {
+                // If rejected, set rejected_round and update status
+                rejectedRound = currentRoundNumber;
+                status = "Rejected";
+            } else if (currentRoundNumber < prev.total_rounds) {
+                // If successful and not the last round, move to next round
+                nextRound = currentRoundNumber + 1;
+            } else {
+                // If successful and last round, update status to Offer
+                status = "Offer";
+            }
+
+            return {
+                ...prev,
+                current_round: nextRound,
+                rejected_round: rejectedRound,
+                status: status,
+                interview_rounds: updatedRounds,
+                timeline_events: [
+                    ...prev.timeline_events,
+                    {
+                        id: `te${Date.now()}`,
+                        type: "interview",
+                        title: `Round ${currentRoundNumber} Completed`,
+                        date: new Date().toISOString(),
+                        description: data.isRejected
+                            ? `Application rejected at round ${currentRoundNumber}`
+                            : `Successfully completed ${currentRound.title}`,
+                    },
+                ],
+            };
+        });
+
+        setCompleteRoundOpen(false);
+    };
     const getStatusColor = (status: string) => {
         switch (status) {
             case "Applied":
@@ -231,7 +301,7 @@ export default function ApplicationDetailPage({
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="border-[#3c3c3c] bg-[#2d2d2d] hover:bg-[#3e3e3e]"
+                                        className="border-foreground/10 bg-primary hover:bg-[#3e3e3e]"
                                         onClick={() =>
                                             setUpdateStatusOpen(true)
                                         }
@@ -241,7 +311,7 @@ export default function ApplicationDetailPage({
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="border-[#3c3c3c] bg-[#2d2d2d] hover:bg-[#3e3e3e]"
+                                        className="border-foreground/10 bg-primary hover:bg-[#3e3e3e]"
                                         onClick={() => setAddRoundOpen(true)}
                                     >
                                         <Plus className="mr-1 h-4 w-4" />
@@ -300,7 +370,13 @@ export default function ApplicationDetailPage({
                                     </TabsTrigger>
                                 </TabsList>
                             </Tabs>
-
+                            <CompleteRoundDialog
+                                open={completeRoundOpen}
+                                onOpenChange={setCompleteRoundOpen}
+                                roundNumber={application.current_round}
+                                roundTitle={"123"}
+                                onComplete={handleCompleteRound}
+                            />
                             {/* Main Content */}
                             <div className="space-y-6">
                                 {activeTab === "overview" && (
@@ -529,90 +605,15 @@ export default function ApplicationDetailPage({
                                                         application={
                                                             application
                                                         }
+                                                        onCompleteStep={() =>
+                                                            setCompleteRoundOpen(
+                                                                true
+                                                            )
+                                                        }
                                                     />
                                                 </div>
                                             </CardContent>
                                         </Card>
-
-                                        {/* Contacts */}
-                                        {application.contacts &&
-                                            application.contacts.length > 0 && (
-                                                <Card className="bg-[#252526] border-[#3c3c3c] text-[#cccccc]">
-                                                    <CardHeader>
-                                                        <CardTitle className="text-base">
-                                                            Contacts
-                                                        </CardTitle>
-                                                        <CardDescription className="text-[#8a8a8a]">
-                                                            People involved in
-                                                            your application
-                                                        </CardDescription>
-                                                    </CardHeader>
-                                                    <CardContent>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            {application.contacts.map(
-                                                                (
-                                                                    contact: any
-                                                                ) => (
-                                                                    <div
-                                                                        key={
-                                                                            contact.id
-                                                                        }
-                                                                        className="flex items-start gap-3 p-3 rounded-md border border-[#3c3c3c] bg-[#1e1e1e]"
-                                                                    >
-                                                                        <div className="h-10 w-10 rounded-full bg-[#0e639c] flex items-center justify-center text-white font-medium">
-                                                                            {contact.name
-                                                                                .split(
-                                                                                    " "
-                                                                                )
-                                                                                .map(
-                                                                                    (
-                                                                                        n: string
-                                                                                    ) =>
-                                                                                        n[0]
-                                                                                )
-                                                                                .join(
-                                                                                    ""
-                                                                                )}
-                                                                        </div>
-                                                                        <div>
-                                                                            <h3 className="font-medium">
-                                                                                {
-                                                                                    contact.name
-                                                                                }
-                                                                            </h3>
-                                                                            <p className="text-xs text-[#8a8a8a]">
-                                                                                {
-                                                                                    contact.role
-                                                                                }
-                                                                            </p>
-                                                                            <div className="mt-1 space-y-1">
-                                                                                <a
-                                                                                    href={`mailto:${contact.email}`}
-                                                                                    className="text-xs text-[#0e639c] hover:underline block"
-                                                                                >
-                                                                                    {
-                                                                                        contact.email
-                                                                                    }
-                                                                                </a>
-                                                                                {contact.phone && (
-                                                                                    <a
-                                                                                        href={`tel:${contact.phone}`}
-                                                                                        className="text-xs text-[#0e639c] hover:underline block"
-                                                                                    >
-                                                                                        {
-                                                                                            contact.phone
-                                                                                        }
-                                                                                    </a>
-                                                                                )}
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                )
-                                                            )}
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            )}
                                     </>
                                 )}
 
@@ -673,25 +674,7 @@ export default function ApplicationDetailPage({
 
                                 {activeTab === "notes" && (
                                     <Card className="bg-[#252526] border-[#3c3c3c] text-[#cccccc]">
-                                        <CardHeader className="flex flex-row items-center justify-between">
-                                            <div>
-                                                <CardTitle className="text-base">
-                                                    Notes
-                                                </CardTitle>
-                                                <CardDescription className="text-[#8a8a8a]">
-                                                    Your notes about this
-                                                    application
-                                                </CardDescription>
-                                            </div>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="border-[#3c3c3c] bg-[#2d2d2d] hover:bg-[#3e3e3e]"
-                                            >
-                                                <Plus className="mr-1 h-4 w-4" />
-                                                Add Note
-                                            </Button>
-                                        </CardHeader>
+                                        <CardHeader className="flex flex-row items-center justify-between"></CardHeader>
                                         <CardContent>
                                             <ApplicationNotes
                                                 notes={application.notes}
@@ -708,14 +691,6 @@ export default function ApplicationDetailPage({
                                 currentStatus={application.status.name}
                                 onUpdate={handleStatusUpdate}
                             />
-
-                            {/* Add Interview Round Dialog */}
-                            {/* <AddInterviewRoundDialog
-                open={addRoundOpen}
-                onOpenChange={setAddRoundOpen}
-                onAddRound={handleAddInterviewRound}
-                roundNumber={application.interview_rounds.length + 1}
-            /> */}
                         </div>
                     </div>
                 </section>
