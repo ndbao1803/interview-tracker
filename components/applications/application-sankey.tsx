@@ -307,10 +307,10 @@ export function ApplicationSankey({
 
         if (over && active.id !== over.id) {
             const oldIndex = sortableRounds.findIndex(
-                (item) => item.id === active.id
+                (item: any) => item.id === active.id
             );
             const newIndex = sortableRounds.findIndex(
-                (item) => item.id === over.id
+                (item: any) => item.id === over.id
             );
 
             if (oldIndex !== -1 && newIndex !== -1) {
