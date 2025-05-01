@@ -19,9 +19,9 @@ import { Label } from "@/components/ui/label";
 interface CompleteRoundDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    roundNumber: number;
-    roundTitle: string;
+    round: any;
     onComplete: (data: {
+        round: any;
         isFinish: boolean;
         feedback: string;
         note: string;
@@ -32,8 +32,7 @@ interface CompleteRoundDialogProps {
 export function CompleteRoundDialog({
     open,
     onOpenChange,
-    roundNumber,
-    roundTitle,
+    round,
     onComplete,
 }: CompleteRoundDialogProps) {
     const [outcome, setOutcome] = useState<"success" | "rejected">("success");
@@ -42,6 +41,7 @@ export function CompleteRoundDialog({
 
     const handleSubmit = () => {
         onComplete({
+            round,
             isFinish: true,
             feedback,
             note,
@@ -61,7 +61,7 @@ export function CompleteRoundDialog({
             <DialogContent className="sm:max-w-[550px] bg-[#252526] border-[#3c3c3c] text-[#cccccc]">
                 <DialogHeader>
                     <DialogTitle>
-                        Complete Round {roundNumber}: {roundTitle}
+                        Complete Round {round?.seq_no}: {round?.title}
                     </DialogTitle>
                     <DialogDescription className="text-[#8a8a8a]">
                         Record the outcome and feedback for this interview

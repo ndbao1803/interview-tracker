@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { Toaster } from "./ui/toaster";
 
 const iconSize = 20;
 const dashboardMenu = [
@@ -117,7 +118,7 @@ export default function SharedLayout({
                     {children}
                 </div>
             </div>
-
+            <Toaster />
             <footer className="w-full border-t border-t-foreground/10 p-8 flex justify-center text-center text-xs h-16">
                 <p>
                     Powered by{" "}

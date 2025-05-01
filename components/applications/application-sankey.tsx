@@ -168,7 +168,7 @@ function SortableRoundItem({
                     {/* Complete Button (only for current round) */}
                     {isCurrent && !isCompleted && (
                         <Button
-                            className="mt-3 bg-[#0e639c] hover:bg-[#1177bb]"
+                            className="mt-3 bg-primary hover:bg-[#1177bb]"
                             onClick={onCompleteStep}
                         >
                             Complete This Step
@@ -189,8 +189,8 @@ function DropZone({ index, onDrop }: { index: number; onDrop: () => void }) {
                 className="flex items-center justify-center h-8 ml-[22px] cursor-pointer group"
                 onClick={onDrop}
             >
-                <div className="h-8 w-8 rounded-full border-2 border-dashed border-[#3c3c3c] flex items-center justify-center bg-[#252526] group-hover:border-[#0e639c] group-hover:bg-[#0e639c]/10 transition-colors">
-                    <ArrowDown className="h-4 w-4 text-[#8a8a8a] group-hover:text-[#0e639c]" />
+                <div className="h-8 w-8 rounded-full border-2 border-dashed border-[#3c3c3c] flex items-center justify-center bg-[#252526] group-hover:border-[#2ecc71] group-hover:bg-[#2ecc71]/10 transition-colors">
+                    <ArrowDown className="h-4 w-4 text-[#8a8a8a] group-hover:text-[#2ecc71]" />
                 </div>
                 <div className="ml-2 text-xs text-[#8a8a8a] group-hover:text-white">
                     Drop here to add a round
@@ -218,7 +218,7 @@ export function ApplicationSankey({
 
     // Get current round
     const currentRound = application.current_round || 1;
-    const totalRounds = application.total_rounds || rounds.length || 4;
+    const totalRounds = rounds.length;
 
     // Calculate progress percentage
     const progressPercentage = Math.min(
@@ -238,11 +238,18 @@ export function ApplicationSankey({
         })
     );
 
+    // Handle adding a round at a specific position
+    const handleAddRoundAt = (position: number) => {
+        // This would open the AddInterviewRoundDialog with the position information
+        console.log(`Add round at position: ${position}`);
+        onAddRoundAt(position);
+    };
+
     // Get status color
     const getStatusColor = (status: string) => {
         switch (status) {
             case "Applied":
-                return "#0e639c"; // blue
+                return "#2ecc71"; // blue
             case "Screening":
                 return "#9b59b6"; // purple
             case "Interview":
@@ -317,7 +324,7 @@ export function ApplicationSankey({
                 const newRounds = arrayMove(sortableRounds, oldIndex, newIndex);
 
                 // Update seq_no and round_number for each round
-                const updatedRounds = newRounds.map((round, index) => ({
+                const updatedRounds = newRounds.map((round: any, index) => ({
                     ...round,
                     seq_no: index + 1,
                     round_number: index + 1,
@@ -327,14 +334,6 @@ export function ApplicationSankey({
             }
         }
     };
-
-    // Handle adding a round at a specific position
-    const handleAddRoundAt = (position: number) => {
-        // This would open the AddInterviewRoundDialog with the position information
-        console.log(`Add round at position: ${position}`);
-        onAddRoundAt(position);
-    };
-
     return (
         <div className="h-full w-full flex flex-col justify-center">
             {/* Status and Progress Header */}
@@ -406,7 +405,7 @@ export function ApplicationSankey({
                         onClick={() => setIsEditMode(!isEditMode)}
                         className={`border-[#3c3c3c] ${
                             isEditMode
-                                ? "bg-[#0e639c] text-white"
+                                ? "bg-[#2ecc71] text-white"
                                 : "bg-[#2d2d2d]"
                         } hover:bg-[#3e3e3e]`}
                     >
@@ -419,7 +418,7 @@ export function ApplicationSankey({
                     {/* Round Steps */}
                     {rounds.map((round: any, index: number) => {
                         const roundNumber = index + 1;
-                        const isCompleted = round.status === "Completed";
+                        const isCompleted = round.isFinish == true;
                         const isCurrent = roundNumber === currentRound;
                         const isPending = roundNumber > currentRound;
 
@@ -507,14 +506,14 @@ export function ApplicationSankey({
                                             )}
                                         </div>
 
-                                        {round.date && (
+                                        {round.date_time && (
                                             <div className="mt-1 text-sm text-[#8a8a8a]">
                                                 <div className="flex items-center gap-1">
                                                     <span>
                                                         Scheduled:{" "}
                                                         {new Date(
-                                                            round.date
-                                                        ).toLocaleDateString()}
+                                                            round.date_time
+                                                        ).toLocaleString()}
                                                     </span>
                                                 </div>
                                                 {round.interviewer && (
@@ -539,11 +538,21 @@ export function ApplicationSankey({
                                                 </p>
                                             </div>
                                         )}
+                                        {round.note && (
+                                            <div className="mt-2 p-3 bg-[#252526] border border-[#3c3c3c] rounded-md">
+                                                <h4 className="text-xs font-medium mb-1">
+                                                    Note
+                                                </h4>
+                                                <p className="text-sm">
+                                                    {round.note}
+                                                </p>
+                                            </div>
+                                        )}
 
                                         {/* Complete Button (only for current round) */}
                                         {isCurrent && !isCompleted && (
                                             <Button
-                                                className="mt-3 bg-[#0e639c] hover:bg-[#1177bb]"
+                                                className="mt-3 bg-primary hover:bg-[#1177bb]"
                                                 onClick={onCompleteStep}
                                             >
                                                 Complete This Step
@@ -563,8 +572,8 @@ export function ApplicationSankey({
                                                         onAddRoundAt(index + 1)
                                                     }
                                                 >
-                                                    <div className="h-6 w-6 rounded-full border-2 border-dashed border-[#3c3c3c] flex items-center justify-center bg-[#252526] group-hover:border-[#0e639c] group-hover:bg-[#0e639c]/10 transition-colors">
-                                                        <Plus className="h-3 w-3 text-[#8a8a8a] group-hover:text-[#0e639c]" />
+                                                    <div className="h-6 w-6 rounded-full border-2 border-dashed border-[#3c3c3c] flex items-center justify-center bg-[#252526] group-hover:border-[#2ecc71] group-hover:bg-[#2ecc71]/10 transition-colors">
+                                                        <Plus className="h-3 w-3 text-[#8a8a8a] group-hover:text-[#2ecc71]" />
                                                     </div>
                                                 </button>
                                             </TooltipTrigger>

@@ -40,6 +40,8 @@ import { ApplicationNotes } from "@/components/applications/application-notes";
 import { UpdateStatusDialog } from "@/components/applications/update-status-dialog";
 import SharedLayout from "@/components/SharedLayout";
 import { CompleteRoundDialog } from "@/components/applications/complete-round-dialog";
+import { AddInterviewRoundDialog } from "@/components/applications/add-interview-round-dialog";
+import { toast } from "@/components/ui/use-toast";
 
 interface ApplicationDetailPageProps {
     params: {
@@ -57,48 +59,49 @@ export default function ApplicationDetailPage({
     const [updateStatusOpen, setUpdateStatusOpen] = useState(false);
     const [addRoundOpen, setAddRoundOpen] = useState(false);
     const [completeRoundOpen, setCompleteRoundOpen] = useState(false);
+    const [insertPosition, setInsertPosition] = useState<number | null>(null);
+    const fetchApplication = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch(`/api/applications/${params.id}`);
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.error || "Failed to fetch");
+
+            const app = data.application;
+
+            const timeline_events = app.timeline.map((event: any) => ({
+                id: event.id,
+                type: event.type,
+                title: event.title,
+                date: event.date,
+                description: event.description,
+                status: event.status?.name || "",
+            }));
+
+            setApplication({
+                ...app,
+                company: {
+                    ...app.positions?.companies,
+                    logo: app.positions?.companies?.logo_url,
+                    industry: app.positions?.companies?.industry?.name,
+                },
+                position: app.positions?.title,
+                total_rounds: app.interview_rounds?.length || 0,
+                tags: app.tags?.map((tag: any) => tag.tags?.name) || [],
+                status: app.status,
+                interview_rounds: app.interview_rounds || [],
+                notes: app.notes || [],
+                timeline_events,
+            });
+        } catch (error) {
+            console.error("Error fetching application:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchApplication = async () => {
-            setLoading(true);
-            try {
-                const res = await fetch(`/api/applications/${params.id}`);
-                const data = await res.json();
-
-                if (!res.ok) throw new Error(data.error || "Failed to fetch");
-
-                const app = data.application;
-
-                const timeline_events = app.timeline.map((event: any) => ({
-                    id: event.id,
-                    type: event.type,
-                    title: event.title,
-                    date: event.date,
-                    description: event.description,
-                    status: event.status?.name || "",
-                }));
-
-                setApplication({
-                    ...app,
-                    company: {
-                        ...app.positions?.companies,
-                        logo: app.positions?.companies?.logo_url,
-                        industry: app.positions?.companies?.industry?.name,
-                    },
-                    position: app.positions?.title,
-                    total_rounds: app.interview_rounds?.length || 0,
-                    tags: app.tags?.map((tag: any) => tag.tags?.name) || [],
-                    status: app.status,
-                    interview_rounds: app.interview_rounds || [],
-                    notes: app.notes || [],
-                    timeline_events,
-                });
-            } catch (error) {
-                console.error("Error fetching application:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchApplication();
     }, [params.id]);
 
@@ -139,84 +142,107 @@ export default function ApplicationDetailPage({
                     type: "interview",
                     title: `Interview Round ${roundNumber} Added`,
                     date: new Date().toISOString(),
-                    description: `Added ${
-                        newRound.title
-                    } scheduled for ${format(new Date(newRound.date), "PPP")}`,
+                    description: `Added ${newRound.title} `,
                 },
             ],
         }));
         setAddRoundOpen(false);
     };
-    const handleCompleteRound = (data: {
+    const handleCompleteRound = async (data: {
+        round: any;
         isFinish: boolean;
         feedback: string;
         note: string;
         isRejected: boolean;
     }) => {
-        const currentRoundNumber = application.current_round;
-        const currentRound = application.interview_rounds.find(
-            (round: any) =>
-                round.seq_no === currentRoundNumber ||
-                round.round_number === currentRoundNumber
-        );
+        if (!data.round) return;
 
-        if (!currentRound) return;
-
-        setApplication((prev: any) => {
-            // Update the current round
-            const updatedRounds = prev.interview_rounds.map((round: any) => {
-                if (round.id === currentRound.id) {
-                    return {
-                        ...round,
-                        isFinish: data.isFinish,
-                        status: "Completed",
-                        feedback: data.feedback,
-                        note: data.note,
-                    };
-                }
-                return round;
+        try {
+            // Step 1: Update the round itself
+            const res = await fetch("/api/application_rounds", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    id: data.round.id,
+                    isFinish: true,
+                    feedback: data.feedback,
+                    note: data.note,
+                }),
             });
 
-            // Determine next application state
-            let nextRound = currentRoundNumber;
-            let rejectedRound = prev.rejected_round;
-            let status = prev.status;
+            if (!res.ok) throw new Error("Failed to update round");
 
-            if (data.isRejected) {
-                // If rejected, set rejected_round and update status
-                rejectedRound = currentRoundNumber;
-                status = "Rejected";
-            } else if (currentRoundNumber < prev.total_rounds) {
-                // If successful and not the last round, move to next round
-                nextRound = currentRoundNumber + 1;
-            } else {
-                // If successful and last round, update status to Offer
-                status = "Offer";
-            }
+            const { round: updatedRound } = await res.json();
 
-            return {
-                ...prev,
-                current_round: nextRound,
-                rejected_round: rejectedRound,
-                status: status,
-                interview_rounds: updatedRounds,
-                timeline_events: [
-                    ...prev.timeline_events,
-                    {
-                        id: `te${Date.now()}`,
-                        type: "interview",
-                        title: `Round ${currentRoundNumber} Completed`,
-                        date: new Date().toISOString(),
-                        description: data.isRejected
-                            ? `Application rejected at round ${currentRoundNumber}`
-                            : `Successfully completed ${currentRound.title}`,
-                    },
-                ],
+            // Step 2: Determine updated application fields
+            const currentIndex = application.application_rounds.findIndex(
+                (r: any) => r.id === data.round.id
+            );
+            const nextRoundNumber = currentIndex + 2;
+
+            const newAppData: any = {
+                current_round: data.isRejected
+                    ? application.current_round
+                    : nextRoundNumber,
+                rejected_round: data.isRejected ? data.round.seq_no : null,
             };
-        });
 
-        setCompleteRoundOpen(false);
+            // Step 3: Update the application record
+            await fetch(`/api/applications/${application.id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(newAppData),
+            });
+
+            // // Step 4: Update local state
+            // setApplication((prev: any) => {
+            //     const updatedRounds = prev.interview_rounds.map((round: any) =>
+            //         round.id === updatedRound.id
+            //             ? { ...round, ...updatedRound }
+            //             : round
+            //     );
+
+            //     const newStatusName = data.isRejected
+            //         ? "Rejected"
+            //         : nextRoundNumber > updatedRounds.length
+            //         ? "Offer"
+            //         : prev.status.name;
+
+            //     return {
+            //         ...prev,
+            //         current_round: newAppData.current_round,
+            //         rejected_round: newAppData.rejected_round,
+            //         status: { ...prev.status, name: newStatusName },
+            //         interview_rounds: updatedRounds,
+            //         timeline_events: [
+            //             ...prev.timeline_events,
+            //             {
+            //                 id: `te${Date.now()}`,
+            //                 type: "interview",
+            //                 title: `Round ${data.round.seq_no} Completed`,
+            //                 date: new Date().toISOString(),
+            //                 description: data.isRejected
+            //                     ? `Application rejected at round ${data.round.seq_no}`
+            //                     : `Successfully completed ${data.round.title}`,
+            //             },
+            //         ],
+            //     };
+            // });
+            toast({
+                title: "success",
+                description: "Complete round successfully",
+            });
+            await fetchApplication(); // Refresh app state with latest data
+            setCompleteRoundOpen(false);
+        } catch (error) {
+            console.error("Error completing round:", error);
+        }
     };
+
     const getStatusColor = (status: string) => {
         switch (status) {
             case "Applied":
@@ -265,7 +291,9 @@ export default function ApplicationDetailPage({
             </div>
         );
     }
-
+    const nextIncompleteRound = application.application_rounds.find(
+        (r: any) => !r.isFinish
+    );
     return (
         <SharedLayout>
             <main className=" to-muted h-full">
@@ -373,8 +401,7 @@ export default function ApplicationDetailPage({
                             <CompleteRoundDialog
                                 open={completeRoundOpen}
                                 onOpenChange={setCompleteRoundOpen}
-                                roundNumber={application.current_round}
-                                roundTitle={"123"}
+                                round={nextIncompleteRound}
                                 onComplete={handleCompleteRound}
                             />
                             {/* Main Content */}
@@ -610,6 +637,26 @@ export default function ApplicationDetailPage({
                                                                 true
                                                             )
                                                         }
+                                                        onAddRoundAt={(
+                                                            position
+                                                        ) => {
+                                                            setInsertPosition(
+                                                                position
+                                                            );
+                                                            setAddRoundOpen(
+                                                                true
+                                                            );
+                                                        }}
+                                                        onAddRound={() => {
+                                                            setInsertPosition(
+                                                                application
+                                                                    .application_rounds
+                                                                    .length
+                                                            );
+                                                            setAddRoundOpen(
+                                                                true
+                                                            );
+                                                        }}
                                                     />
                                                 </div>
                                             </CardContent>
@@ -690,6 +737,18 @@ export default function ApplicationDetailPage({
                                 onOpenChange={setUpdateStatusOpen}
                                 currentStatus={application.status.name}
                                 onUpdate={handleStatusUpdate}
+                            />
+
+                            <AddInterviewRoundDialog
+                                open={addRoundOpen}
+                                onOpenChange={setAddRoundOpen}
+                                onAddRound={handleAddInterviewRound}
+                                roundNumber={
+                                    insertPosition !== null
+                                        ? insertPosition + 1
+                                        : application.interview_rounds.length +
+                                          1
+                                }
                             />
                         </div>
                     </div>
