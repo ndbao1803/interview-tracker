@@ -217,14 +217,13 @@ export function ApplicationSankey({
     }, [application]);
 
     // Get current round
-    const currentRound = application.current_round || 1;
+    const currentRound = application.current_round || 0;
     const totalRounds = rounds.length;
 
     // Calculate progress percentage
-    const progressPercentage = Math.min(
-        Math.round((currentRound / totalRounds) * 100),
-        100
-    );
+    const progressPercentage = totalRounds
+        ? Math.min(Math.round((currentRound / totalRounds) * 100), 100)
+        : 0;
 
     // Set up sensors for drag and drop
     const sensors = useSensors(
@@ -270,20 +269,7 @@ export function ApplicationSankey({
     };
 
     // Get current status
-    const getCurrentStatus = () => {
-        if (application.status === "Rejected") return "Rejected";
-        if (application.status === "Withdrawn") return "Withdrawn";
-        if (application.status === "Accepted") return "Accepted";
-        if (application.status === "Offer") return "Offer";
-
-        if (currentRound > 3) return "Final Round";
-        if (currentRound > 1) return "Interview";
-        if (currentRound === 1) return "Screening";
-
-        return "Applied";
-    };
-
-    const currentStatus = getCurrentStatus();
+    const currentStatus = application.status.name;
 
     // Check if we can add more rounds
     const canAddRound = !["Rejected", "Withdrawn", "Accepted"].includes(
@@ -419,7 +405,7 @@ export function ApplicationSankey({
                     {rounds.map((round: any, index: number) => {
                         const roundNumber = index + 1;
                         const isCompleted = round.isFinish == true;
-                        const isCurrent = roundNumber === currentRound;
+                        const isCurrent = roundNumber === currentRound + 1;
                         const isPending = roundNumber > currentRound;
 
                         return (
@@ -516,6 +502,15 @@ export function ApplicationSankey({
                                                         ).toLocaleString()}
                                                     </span>
                                                 </div>
+                                                {round.duration_min && (
+                                                    <div className="mt-1">
+                                                        <span>
+                                                            Duration:{" "}
+                                                            {round.duration_min}
+                                                            {" minutes"}
+                                                        </span>
+                                                    </div>
+                                                )}
                                                 {round.interviewer && (
                                                     <div className="mt-1">
                                                         <span>

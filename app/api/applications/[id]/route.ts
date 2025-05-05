@@ -36,9 +36,6 @@ export async function GET(
                 },
                 timeline: {
                     orderBy: { date: "desc" },
-                    include: {
-                        status: true,
-                    },
                 },
                 status: true,
             },

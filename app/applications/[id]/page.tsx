@@ -180,7 +180,7 @@ export default function ApplicationDetailPage({
             const currentIndex = application.application_rounds.findIndex(
                 (r: any) => r.id === data.round.id
             );
-            const nextRoundNumber = currentIndex + 2;
+            const nextRoundNumber = currentIndex + 1;
 
             const newAppData: any = {
                 current_round: data.isRejected
@@ -198,48 +198,39 @@ export default function ApplicationDetailPage({
                 body: JSON.stringify(newAppData),
             });
 
-            // // Step 4: Update local state
-            // setApplication((prev: any) => {
-            //     const updatedRounds = prev.interview_rounds.map((round: any) =>
-            //         round.id === updatedRound.id
-            //             ? { ...round, ...updatedRound }
-            //             : round
-            //     );
+            // ✅ Step 4: Create timeline event
+            const timelineRes = await fetch("/api/application_timeline", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    application_id: application.id,
+                    type: "interview",
+                    title: `Finished Step ${data.round.seq_no}`,
+                    description: data.isRejected
+                        ? `Application rejected at round ${data.round.seq_no}`
+                        : `Successfully completed ${data.round.title}`,
+                }),
+            });
 
-            //     const newStatusName = data.isRejected
-            //         ? "Rejected"
-            //         : nextRoundNumber > updatedRounds.length
-            //         ? "Offer"
-            //         : prev.status.name;
+            if (!timelineRes.ok)
+                throw new Error("Failed to create timeline event");
 
-            //     return {
-            //         ...prev,
-            //         current_round: newAppData.current_round,
-            //         rejected_round: newAppData.rejected_round,
-            //         status: { ...prev.status, name: newStatusName },
-            //         interview_rounds: updatedRounds,
-            //         timeline_events: [
-            //             ...prev.timeline_events,
-            //             {
-            //                 id: `te${Date.now()}`,
-            //                 type: "interview",
-            //                 title: `Round ${data.round.seq_no} Completed`,
-            //                 date: new Date().toISOString(),
-            //                 description: data.isRejected
-            //                     ? `Application rejected at round ${data.round.seq_no}`
-            //                     : `Successfully completed ${data.round.title}`,
-            //             },
-            //         ],
-            //     };
-            // });
+            // Step 5: UI updates & feedback
             toast({
-                title: "success",
-                description: "Complete round successfully",
+                title: "Success",
+                description: "Round completed and timeline updated",
             });
             await fetchApplication(); // Refresh app state with latest data
             setCompleteRoundOpen(false);
         } catch (error) {
             console.error("Error completing round:", error);
+            toast({
+                title: "Error",
+                description: "Something went wrong while completing the round",
+                variant: "destructive",
+            });
         }
     };
 

@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
                 position_id: positionId,
                 note,
                 status_id: defaultAppliedStatus,
-                source_channel: "",
+                source_channel: source_channel,
                 tags:
                     tags && tags.length > 0
                         ? {
